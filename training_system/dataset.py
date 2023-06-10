@@ -164,6 +164,8 @@ class PolygonsAnnotation:
     def __getitem__(self, idx: int) -> tuple[np.array, np.array]:
         image = self.__get_image(idx)
         mask = self.__get_mask(idx)
+        image = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1)
+        mask = torch.tensor(mask, dtype=torch.float32)
         return image, mask
 
     @staticmethod
