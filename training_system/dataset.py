@@ -150,3 +150,66 @@ class HuBMAPDataset(Dataset):
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
         return image, mask
+
+
+class PolygonsAnnotation:
+    def __init__(self, annotation_path: str, image_path: str, config_path: str):
+        self.__image_path = image_path
+        self.__samples = self.__parse_jsonl(annotation_path)
+        self.__config = pd.read_csv(config_path)
+
+    def __len__(self) -> int:
+        return len(self.__samples)
+
+    def __getitem__(self, idx: int) -> tuple[np.array, np.array]:
+        image = self.__get_image(idx)
+        mask = self.__get_mask(idx)
+        return image, mask
+
+    @staticmethod
+    def __parse_jsonl(path: str) -> list[dict, ...]:
+        with open(path, 'r') as json_file:
+            jsonl_labels = [
+                json.loads(line)
+                for line in tqdm(json_file)
+            ]
+        return jsonl_labels
+
+    def __get_image_path(self, id: str) -> str:
+        path = os.path.join(
+            self.__image_path, f"{id}.tif"
+        )
+        return path
+
+    def __get_image(self, idx: int) -> np.array:
+        identifier = self.__samples[idx]["id"]
+        image_path = self.__get_image_path(identifier)
+        image = Image.open(image_path)
+        image = np.asarray(image)
+        return image
+
+    @staticmethod
+    def __apply_samples(coordinates: list,
+                        mask: np.array,
+                        label: int) -> np.array:
+        for coordinate in coordinates:
+            y, x = [
+                np.asarray([i[1] for i in coordinate]),
+                np.asarray([i[0] for i in coordinate])
+            ]
+
+            mask[y, x] = label
+
+    def __get_mask(self, idx: int) -> np.array:
+        mask = np.zeros((512, 512), dtype=np.uint8)
+        annotations = self.__samples[idx]["annotations"]
+
+        for vessel in annotations:
+            vessel_type = vessel["type"]
+            apply_mask, label, rgb, loss_weight = self.__config[vessel_type]
+
+            if apply_mask:
+                coordinates = vessel["coordinates"]
+                self.__apply_samples(coordinates, mask, label)
+
+        return mask
