@@ -5,6 +5,17 @@ import typing as t
 import zlib
 
 
+class Submission:
+    def __init__(self):
+        pass
+
+    def __len__(self):
+        pass
+
+    def __call__(self):
+        pass
+
+
 class EncodeBinaryMask:
     def __init__(self, dirpath: str = None):
         self.__dirpath = dirpath
