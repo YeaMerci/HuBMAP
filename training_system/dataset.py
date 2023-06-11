@@ -177,9 +177,9 @@ class PolygonsAnnotation:
             ]
         return jsonl_labels
 
-    def __get_image_path(self, id: str) -> str:
+    def __get_image_path(self, identifier: str) -> str:
         path = os.path.join(
-            self.__image_path, f"{id}.tif"
+            self.__image_path, f"{identifier}.tif"
         )
         return path
 
