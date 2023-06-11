@@ -6,14 +6,39 @@ import zlib
 
 
 class Submission:
-    def __init__(self):
-        pass
+    def __init__(self, dirpath: str, model):
+        self.__model = model
+        self.__encoder = EncodeBinaryMask()
+        self.__dirpath = dirpath
+        self.__filenames = os.listdir(dirpath)
 
     def __len__(self):
-        pass
+        return len(self.__filenames)
 
-    def __call__(self):
-        pass
+    def __iter__(self):
+        for filename in self.__filenames:
+            path = self.__get_image_path(filename)
+            image = self.__get_image(path)
+            mask = self.__forward(image)
+            base64_str = self.__encoder(mask)
+            yield base64_str
+
+    def __get_image_path(self, filename: str):
+        return os.path.join(
+            self.__dirpath, filename
+        )
+
+    @staticmethod
+    def __get_image(path: str):
+        image = Image.open(image_path)
+        image = np.asarray(image)
+        image = torch.tensor(
+            image, dtype=torch.float32).permute(2, 0, 1)
+        return image
+
+    def __forward(self, image: torch.tensor):
+        output = self.model(image)
+        return output
 
 
 class EncodeBinaryMask:
