@@ -153,7 +153,76 @@ class HuBMAPDataset(Dataset):
 
 
 class AttributeValidator:
-    pass
+    def __init__(self,
+                 annotation_path: str,
+                 image_path: str,
+                 config_path: str,
+                 train_size: float,
+                 val_size: float,
+                 stage: str,
+                 shuffle: bool):
+
+        self.__type_checking(
+            annotation_path,
+            image_path,
+            config_path,
+            train_size,
+            val_size,
+            stage,
+            shuffle
+        )
+
+        self.__split_checking(
+            train_size,
+            val_size
+        )
+
+        self.__path_checking(
+            annotation_path,
+            image_path,
+            config_path
+        )
+
+        self.__stage_checking(
+            stage
+        )
+
+    @staticmethod
+    def __type_checking(annotation_path: str,
+                        image_path: str,
+                        config_path: str,
+                        train_size: float,
+                        val_size: float,
+                        stage: str,
+                        shuffle: bool) -> None:
+
+        assert isinstance(image_path, str)
+        assert isinstance(annotation_path, str)
+        assert isinstance(config_path, str)
+        assert isinstance(train_size, float)
+        assert isinstance(val_size, float)
+        assert isinstance(stage, str)
+        assert isinstance(shuffle, bool)
+
+    @staticmethod
+    def __split_checking(train_size: float,
+                         val_size: float) -> None:
+        total_size = train_size + val_size
+        assert total_size == 1
+
+    @staticmethod
+    def __path_checking(
+            annotation_path: str,
+            image_path: str,
+            config_path: str) -> None:
+
+        assert os.path.isdir(image_path)
+        assert os.path.isfile(annotation_path)
+        assert os.path.isfile(config_path)
+
+    @staticmethod
+    def __stage_checking(stage: str) -> None:
+        assert stage in ["train", "val"]
 
 
 class PolygonsAnnotation:
@@ -193,70 +262,6 @@ class PolygonsAnnotation:
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
         return image, mask
-
-    @staticmethod
-    def __type_checking(annotation_path: str,
-                        image_path: str,
-                        config_path: str,
-                        train_size: float,
-                        val_size: float,
-                        stage: str,
-                        shuffle: bool
-                        ) -> None:
-
-        assert isinstance(image_path, str)
-        assert isinstance(annotation_path, str)
-        assert isinstance(config_path, str)
-        assert isinstance(train_size, float)
-        assert isinstance(val_size, float)
-        assert isinstance(stage, str)
-        assert isinstance(shuffle, bool)
-
-    @staticmethod
-    def __split_checking(train_size: float, val_size: float) -> None:
-        total_size = train_size + val_size
-        assert total_size == 1
-
-    @staticmethod
-    def __path_checking(annotation_path: str,
-                        image_path: str,
-                        config_path: str) -> None:
-        assert os.path.isdir(image_path)
-        assert os.path.isfile(annotation_path)
-        assert os.path.isfile(config_path)
-
-    @staticmethod
-    def __stage_checking(stage: str) -> None:
-        assert stage in ["train", "val"]
-
-    @classmethod
-    def __attribute_checking(cls,
-                             annotation_path: str,
-                             image_path: str,
-                             config_path: str,
-                             train_size: float,
-                             val_size: float,
-                             stage: str,
-                             shuffle: bool
-                             ) -> None:
-
-        cls.__type_checking(
-            annotation_path, image_path,
-            config_path, train_size,
-            val_size, stage, shuffle
-        )
-
-        cls.__split_checking(
-            train_size, val_size
-        )
-
-        cls.__path_checking(
-            annotation_path,
-            image_path,
-            config_path
-        )
-
-        cls.__stage_checking(stage)
 
     @staticmethod
     def __parse_jsonl(path: str) -> list[dict, ...]:
