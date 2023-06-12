@@ -275,6 +275,17 @@ class PolygonsAnnotation:
         image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         return image.transpose(2, 0, 1)
 
+    @staticmethod
+    def load_config(path: str) -> dict:
+        with open(path, mode="r") as f:
+            data = yaml.load(stream=f, Loader=yaml.SafeLoader)
+        return data
+
+    @staticmethod
+    def write_config(data: dict[dict, ...], path: str) -> None:
+        with open(path, mode="w") as f:
+            yaml.safe_dump(stream=f, data=data)
+
     def __get_mask(self, idx: int) -> np.ndarray:
         mask = np.zeros((512, 512), dtype=np.uint8)
         annotations = self.__samples[idx]["annotations"]
