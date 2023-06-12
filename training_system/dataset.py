@@ -322,7 +322,9 @@ class PolygonsAnnotation:
 
         for vessel in annotations:
             vessel_type = vessel["type"]
-            apply_mask, label, rgb, loss_weight = self.__config[vessel_type]
+            config = self.__config[vessel_type]
+            apply_mask = config["apply_mask"]
+            label = config["label"]
 
             if apply_mask:
                 coordinates = np.array(vessel["coordinates"])
