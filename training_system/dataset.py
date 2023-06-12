@@ -161,7 +161,7 @@ class PolygonsAnnotation:
     def __len__(self) -> int:
         return len(self.__samples)
 
-    def __getitem__(self, idx: int) -> tuple[np.array, np.array]:
+    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         image = self.__get_image(idx)
         mask = self.__get_mask(idx)
         image = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1)
@@ -183,26 +183,14 @@ class PolygonsAnnotation:
         )
         return path
 
-    def __get_image(self, idx: int) -> np.array:
+    def __get_image(self, idx: int) -> np.ndarray:
         identifier = self.__samples[idx]["id"]
         image_path = self.__get_image_path(identifier)
         image = Image.open(image_path)
         image = np.asarray(image)
         return image
 
-    @staticmethod
-    def __apply_samples(coordinates: list,
-                        mask: np.array,
-                        label: int) -> np.array:
-        for coordinate in coordinates:
-            y, x = [
-                np.asarray([i[1] for i in coordinate]),
-                np.asarray([i[0] for i in coordinate])
-            ]
-
-            mask[y, x] = label
-
-    def __get_mask(self, idx: int) -> np.array:
+    def __get_mask(self, idx: int) -> np.ndarray:
         mask = np.zeros((512, 512), dtype=np.uint8)
         annotations = self.__samples[idx]["annotations"]
 
@@ -211,7 +199,9 @@ class PolygonsAnnotation:
             apply_mask, label, rgb, loss_weight = self.__config[vessel_type]
 
             if apply_mask:
-                coordinates = vessel["coordinates"]
-                self.__apply_samples(coordinates, mask, label)
-
+                coordinates = np.array(vessel["coordinates"])
+                mask = cv2.fillPoly(
+                    mask, pts=coordinates,
+                    color=(label, label, label)
+                )
         return mask
