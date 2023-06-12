@@ -165,6 +165,7 @@ class PolygonsAnnotation:
                  ):
         self.__type_checking(image_path, annotation_path, stage,
                              shuffle, train_size, val_size)
+        self.__split_checking(train_size, val_size)
 
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
@@ -201,6 +202,11 @@ class PolygonsAnnotation:
         assert isinstance(val_size, float)
         assert isinstance(stage, str)
         assert isinstance(shuffle, bool)
+
+    @staticmethod
+    def __split_checking(train_size: float, val_size: float) -> None:
+        total_size = train_size + val_size
+        assert total_size == 1
 
     @staticmethod
     def __parse_jsonl(path: str) -> list[dict, ...]:
