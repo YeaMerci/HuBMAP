@@ -209,6 +209,11 @@ class PolygonsAnnotation:
         assert total_size == 1
 
     @staticmethod
+    def __path_checking(target_path: str, data_path: str) -> None:
+        assert os.path.isdir(data_path)
+        assert os.path.isdir(target_path)
+
+    @staticmethod
     def __parse_jsonl(path: str) -> list[dict, ...]:
         with open(path, 'r') as json_file:
             jsonl_labels = [
