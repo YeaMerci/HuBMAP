@@ -236,6 +236,8 @@ class DatasetConfiguration:
 
     def load_config(self, filename: str) -> dict:
         path = self.__get_path(filename)
+        if os.path.isfile(filename):
+            path = filename
         with open(path, mode="r") as f:
             data = yaml.load(stream=f, Loader=yaml.SafeLoader)
         return data
@@ -271,10 +273,10 @@ class PolygonsAnnotation:
             stage,
             shuffle
         )
-
+        self.configurator = DatasetConfiguration()
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
-        self.__config = pd.read_csv(config_path)
+        self.__config = self.configurator.load_config(config_path)
         self.transforms = transforms
         self.train_size = train_size
         self.val_size = val_size
