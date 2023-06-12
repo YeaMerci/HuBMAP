@@ -226,7 +226,28 @@ class AttributeValidator:
 
 
 class DatasetConfiguration:
-    pass
+    def __init__(self):
+        self.__root_dir = os.path.join(os.getcwd(), "config/dataset")
+        self.__find_root()
+
+    def __find_root(self):
+        if not os.path.exists(self.__root_dir):
+            os.makedirs(self.__root_dir, exist_ok=True)
+
+    def load_config(self, filename: str) -> dict:
+        path = self.__get_path(filename)
+        with open(path, mode="r") as f:
+            data = yaml.load(stream=f, Loader=yaml.SafeLoader)
+        return data
+
+    def __get_path(self, filename: str) -> str:
+        path = os.path.join(self.__root_dir, filename)
+        return path
+
+    def write_config(self, data: dict[dict, ...], filename: str) -> None:
+        path = self.__get_path(filename)
+        with open(path, mode="w") as f:
+            yaml.safe_dump(stream=f, data=data)
 
 
 class PolygonsAnnotation:
@@ -234,7 +255,7 @@ class PolygonsAnnotation:
                  stage: str,
                  annotation_path: str,
                  image_path: str,
-                 config_path: str,
+                 config_path: str = None,
                  transforms: Any = None,
                  train_size: float = 0.85,
                  val_size: float = 0.15,
@@ -259,8 +280,8 @@ class PolygonsAnnotation:
         self.val_size = val_size
         self.stage = stage
         self.shuffle = shuffle
-        self.total_len = None
-        self._X, self._Y = self.__create_dataset()
+        # self.total_len = None
+        # self._X, self._Y = self.__create_dataset()
 
     def __len__(self) -> int:
         return len(self.__samples)
@@ -292,17 +313,6 @@ class PolygonsAnnotation:
         image_path = self.__get_image_path(identifier)
         image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         return image.transpose(2, 0, 1)
-
-    @staticmethod
-    def load_config(path: str) -> dict:
-        with open(path, mode="r") as f:
-            data = yaml.load(stream=f, Loader=yaml.SafeLoader)
-        return data
-
-    @staticmethod
-    def write_config(data: dict[dict, ...], path: str) -> None:
-        with open(path, mode="w") as f:
-            yaml.safe_dump(stream=f, data=data)
 
     def __get_mask(self, idx: int) -> np.ndarray:
         mask = np.zeros((512, 512), dtype=np.uint8)
