@@ -152,6 +152,10 @@ class HuBMAPDataset(Dataset):
         return image, mask
 
 
+class AttributeValidator:
+    pass
+
+
 class PolygonsAnnotation:
     def __init__(self,
                  stage: str,
