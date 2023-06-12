@@ -186,8 +186,7 @@ class PolygonsAnnotation:
     def __get_image(self, idx: int) -> np.ndarray:
         identifier = self.__samples[idx]["id"]
         image_path = self.__get_image_path(identifier)
-        image = Image.open(image_path)
-        image = np.asarray(image)
+        image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         return image
 
     def __get_mask(self, idx: int) -> np.ndarray:
