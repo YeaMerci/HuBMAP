@@ -153,10 +153,29 @@ class HuBMAPDataset(Dataset):
 
 
 class PolygonsAnnotation:
-    def __init__(self, annotation_path: str, image_path: str, config_path: str):
+    def __init__(self,
+                 stage: str,
+                 annotation_path: str,
+                 image_path: str,
+                 config_path: str,
+                 transforms: Any = None,
+                 train_size: float = 0.85,
+                 val_size: float = 0.15,
+                 shuffle: bool = True,
+                 ):
+        self.__type_checking(image_path, annotation_path, stage,
+                             shuffle, train_size, val_size)
+
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
         self.__config = pd.read_csv(config_path)
+        self.transforms = transforms
+        self.train_size = train_size
+        self.val_size = val_size
+        self.stage = stage
+        self.shuffle = shuffle
+        self.total_len = None
+        self._X, self._Y = self.__create_dataset()
 
     def __len__(self) -> int:
         return len(self.__samples)
@@ -167,6 +186,21 @@ class PolygonsAnnotation:
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
         return image, mask
+
+    @staticmethod
+    def __type_checking(image_path: str,
+                        annotation_path: str,
+                        stage: str, shuffle: bool,
+                        train_size: float,
+                        val_size: float,
+                        ) -> None:
+
+        assert isinstance(image_path, str)
+        assert isinstance(annotation_path, str)
+        assert isinstance(train_size, float)
+        assert isinstance(val_size, float)
+        assert isinstance(stage, str)
+        assert isinstance(shuffle, bool)
 
     @staticmethod
     def __parse_jsonl(path: str) -> list[dict, ...]:
