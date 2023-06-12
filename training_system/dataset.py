@@ -225,6 +225,10 @@ class AttributeValidator:
         assert stage in ["train", "val"]
 
 
+class DatasetConfiguration:
+    pass
+
+
 class PolygonsAnnotation:
     def __init__(self,
                  stage: str,
@@ -237,9 +241,14 @@ class PolygonsAnnotation:
                  shuffle: bool = True,
                  ):
 
-        self.__attribute_checking(
-            annotation_path, image_path, config_path,
-            train_size, val_size, stage, shuffle
+        AttributeValidator(
+            annotation_path,
+            image_path,
+            config_path,
+            train_size,
+            val_size,
+            stage,
+            shuffle
         )
 
         self.__image_path = image_path
