@@ -214,6 +214,10 @@ class PolygonsAnnotation:
         assert os.path.isdir(target_path)
 
     @staticmethod
+    def __stage_checking(stage: str) -> None:
+        assert stage in ["train", "test", "val"]
+
+    @staticmethod
     def __parse_jsonl(path: str) -> list[dict, ...]:
         with open(path, 'r') as json_file:
             jsonl_labels = [
