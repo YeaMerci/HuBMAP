@@ -18,11 +18,8 @@ class HuBMAPDataset(Dataset):
                  target_path: str,
                  data_path: str,
                  transforms: Any,
-                 test_size: float = 0.05,
                  train_size: float = 0.80,
-                 val_size: float = 0.15,
-                 shuffle: bool = True,
-                 random_state: int = 42):
+                 shuffle: bool = True):
 
         self.target_path = target_path
         self.data_path = data_path
@@ -98,7 +95,6 @@ class AttributeValidator:
                  image_path: str,
                  config_path: str,
                  train_size: float,
-                 val_size: float,
                  stage: str,
                  shuffle: bool):
 
@@ -107,14 +103,12 @@ class AttributeValidator:
             image_path,
             config_path,
             train_size,
-            val_size,
             stage,
             shuffle
         )
 
         self.__split_checking(
-            train_size,
-            val_size
+            train_size
         )
 
         self.__path_checking(
@@ -132,7 +126,6 @@ class AttributeValidator:
                         image_path: str,
                         config_path: str,
                         train_size: float,
-                        val_size: float,
                         stage: str,
                         shuffle: bool) -> None:
 
@@ -140,15 +133,12 @@ class AttributeValidator:
         assert isinstance(annotation_path, str)
         assert isinstance(config_path, str)
         assert isinstance(train_size, float)
-        assert isinstance(val_size, float)
         assert isinstance(stage, str)
         assert isinstance(shuffle, bool)
 
     @staticmethod
-    def __split_checking(train_size: float,
-                         val_size: float) -> None:
-        total_size = train_size + val_size
-        assert total_size == 1
+    def __split_checking(train_size: float) -> None:
+        assert train_size <= 1 or train_size >= 0
 
     @staticmethod
     def __path_checking(
@@ -200,7 +190,6 @@ class PolygonsAnnotation:
                  config_path: str = None,
                  transforms: Any = None,
                  train_size: float = 0.85,
-                 val_size: float = 0.15,
                  shuffle: bool = True,
                  ):
 
@@ -209,24 +198,20 @@ class PolygonsAnnotation:
             image_path,
             config_path,
             train_size,
-            val_size,
             stage,
             shuffle
         )
+
         self.configurator = DatasetConfiguration()
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
         self.__config = self.configurator.load_config(config_path)
         self.transforms = transforms
-        self.train_size = train_size
-        self.val_size = val_size
-        self.stage = stage
-        self.shuffle = shuffle
         self.total_length = None
-        # self._X, self._Y = self.__create_dataset()
+        self.__identifiers = self.__split_identifiers(stage, train_size, shuffle)
 
     def __len__(self) -> int:
-        return len(self.__samples)
+        return len(self.__identifiers)
 
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         image = self.__get_image(idx)
@@ -277,15 +262,19 @@ class PolygonsAnnotation:
     def __get_identifier(self):
         return [identifier for identifier in self.__samples[idx]["id"]]
 
-    def __split_identifiers(self):
+    def __split_identifiers(self, stage, train_size, shuffle):
         identifiers = self.__get_identifier()
         self.total_length = len(identifiers)
-        if self.shuffle:
+        if shuffle:
             random.shuffle(identifiers)
 
-        train_size = (self.total_length // 100) * self.train_size
-        val_size = self.total_length - train_size
-        train_sample = identifiers[0:val_size]
-        val_sample = identifiers[val_size:train_size]
-        return {"train": train_sample,
-                "val": val_sample}
+        train_length = (self.total_length // 100) * train_size
+        val_length = self.total_length - train_length
+        train_sample = identifiers[0:val_length]
+        val_sample = identifiers[val_length:train_length]
+
+        data_dict = {
+            "train": train_sample,
+            "val": val_sample
+        }
+        return data_dict[stage]
