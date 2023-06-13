@@ -38,6 +38,15 @@ class HuBMAPDataModule(pl.LightningDataModule):
                         std=self.std),
             pytorch.ToTensorV2()
         ])
+        self.__data_source = "https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature/data"
+
+    def prepare_data(self):
+        print(
+            f"Warning! "
+            f"This function cannot load and process data. "
+            f"You have to download the data yourself. "
+            f"Data source: {self.__data_source}"
+        )
 
     def setup(self, stage: str = None) -> None:
         self.data_train = HuBMAPDataset(
