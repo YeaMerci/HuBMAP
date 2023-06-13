@@ -161,12 +161,17 @@ class HuBMAPDataset(Dataset):
         return len(self.__identifiers)
 
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
-        idx = self.__identifiers[idx]
-        image = self.__get_image(idx)
+        idx, identifier = self.__get_sample(idx)
+        image = self.__get_image(identifier)
         mask = self.__get_mask(idx)
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
         return image, mask
+
+    def __get_sample(self, idx: int) -> tuple[int, str]:
+        idx = self.__identifiers[idx]
+        identifier = self.__samples[idx]["id"]
+        return idx, identifier
 
     @staticmethod
     def __parse_jsonl(path: str) -> list[dict, ...]:
@@ -183,8 +188,7 @@ class HuBMAPDataset(Dataset):
         )
         return path
 
-    def __get_image(self, idx: int) -> np.ndarray:
-        identifier = self.__samples[idx]["id"]
+    def __get_image(self, identifier: str) -> np.ndarray:
         image_path = self.__get_image_path(identifier)
         image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         return image.transpose(2, 0, 1)
