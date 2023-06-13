@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import albumentations as A
 import torchvision.transforms as T
@@ -9,6 +10,8 @@ import os
 import yaml
 from typing import Any
 import random
+from tqdm import tqdm
+import json
 
 
 class AttributeValidator:
@@ -99,7 +102,7 @@ class DatasetConfiguration:
         }
         self.sample_config = {}.fromkeys(self.__keys, self.__values)
 
-    def __find_root(self):
+    def __find_root(self) -> None:
         if not os.path.exists(self.__root_dir):
             os.makedirs(self.__root_dir, exist_ok=True)
 
@@ -115,7 +118,7 @@ class DatasetConfiguration:
         path = os.path.join(self.__root_dir, filename)
         return path
 
-    def get_configs(self) -> list:
+    def get_configs(self) -> list[str, ...]:
         return os.listdir(self.__root_dir)
 
     def write_config(self, data: dict[dict, ...], filename: str) -> None:
@@ -163,7 +166,7 @@ class HuBMAPDataset(Dataset):
     def __len__(self) -> int:
         return len(self.__identifiers)
 
-    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         idx, identifier = self.__get_sample(idx)
         image = self.__get_image(identifier)
         mask = self.__get_mask(idx)
@@ -220,7 +223,7 @@ class HuBMAPDataset(Dataset):
              for identifier in self.__samples]
         )
 
-    def __split_identifiers(self, stage, train_size, shuffle, random_state) -> list:
+    def __split_identifiers(self, stage, train_size, shuffle, random_state) -> np.ndarray:
         identifiers = self.__get_identifiers()
         self.total_length = len(identifiers)
         indices = np.arange(self.total_length)
