@@ -85,6 +85,19 @@ class DatasetConfiguration:
         self.__root_dir = os.path.join(os.getcwd(), "config/dataset")
         self.__find_root()
 
+        self.__keys = (
+            "background", "blood_vessel",
+            "glomerulus", "unsure"
+        )
+
+        self.__values = {
+            "apply_mask": True,
+            "label": 0,
+            "rgb": (0, 0, 0),
+            "loss_weight": None
+        }
+        self.sample_config = {}.fromkeys(self.__keys, self.__values)
+
     def __find_root(self):
         if not os.path.exists(self.__root_dir):
             os.makedirs(self.__root_dir, exist_ok=True)
