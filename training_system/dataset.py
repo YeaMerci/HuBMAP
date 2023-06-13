@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import albumentations as A
 import torchvision.transforms as T
 import cv2
+from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 import os
@@ -160,6 +161,7 @@ class HuBMAPDataset(Dataset):
         return len(self.__identifiers)
 
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+        idx = self.__identifiers[idx]
         image = self.__get_image(idx)
         mask = self.__get_mask(idx)
         transformed = self.transforms(image=image, mask=mask)
@@ -205,24 +207,26 @@ class HuBMAPDataset(Dataset):
                 )
         return mask
 
-    def __get_identifier(self) -> list:
-        return [identifier for identifier in self.__samples[idx]["id"]]
+    def __get_identifiers(self) -> np.ndarray:
+        return np.array([identifier for identifier in self.__samples["id"]])
 
     def __split_identifiers(self, stage, train_size, shuffle, random_state) -> list:
-        identifiers = self.__get_identifier()
+        identifiers = self.__get_identifiers()
         self.total_length = len(identifiers)
-        if shuffle:
-            random.shuffle(identifiers)
+        indices = np.arange(self.total_length)
+
         if random_state:
-            random.seed(random_state)
+            np.random.seed(random_state)
+        if shuffle:
+            np.random.shuffle(indices)
 
         train_length = (self.total_length // 100) * train_size
         val_length = self.total_length - train_length
-        train_sample = identifiers[0:val_length]
-        val_sample = identifiers[val_length:train_length]
+        train_indices = identifiers[0:val_length]
+        val_indices = identifiers[val_length:train_length]
 
-        data_dict = {
-            "train": train_sample,
-            "val": val_sample
+        stage_indices = {
+            "train": train_indices,
+            "val": val_indices
         }
-        return data_dict[stage]
+        return stage_indices[stage]
