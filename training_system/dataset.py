@@ -1,5 +1,4 @@
 import random
-
 import albumentations as A
 import torchvision.transforms as T
 from torch.utils.data import Dataset
@@ -96,7 +95,8 @@ class AttributeValidator:
                  config_path: str,
                  train_size: float,
                  stage: str,
-                 shuffle: bool):
+                 shuffle: bool,
+                 random_state: int):
 
         self.__type_checking(
             annotation_path,
@@ -104,7 +104,8 @@ class AttributeValidator:
             config_path,
             train_size,
             stage,
-            shuffle
+            shuffle,
+            random_state
         )
 
         self.__split_checking(
@@ -135,6 +136,8 @@ class AttributeValidator:
         assert isinstance(train_size, float)
         assert isinstance(stage, str)
         assert isinstance(shuffle, bool)
+        assert isinstance(random_state, int)
+
 
     @staticmethod
     def __split_checking(train_size: float) -> None:
@@ -191,6 +194,7 @@ class PolygonsAnnotation:
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
+                 random_state: int = None
                  ):
 
         AttributeValidator(
@@ -199,7 +203,8 @@ class PolygonsAnnotation:
             config_path,
             train_size,
             stage,
-            shuffle
+            shuffle,
+            random_state
         )
 
         self.configurator = DatasetConfiguration()
@@ -208,7 +213,13 @@ class PolygonsAnnotation:
         self.__config = self.configurator.load_config(config_path)
         self.transforms = transforms
         self.total_length = None
-        self.__identifiers = self.__split_identifiers(stage, train_size, shuffle)
+
+        self.__identifiers = self.__split_identifiers(
+            stage,
+            train_size,
+            shuffle,
+            random_state
+        )
 
     def __len__(self) -> int:
         return len(self.__identifiers)
