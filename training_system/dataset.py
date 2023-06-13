@@ -215,7 +215,10 @@ class HuBMAPDataset(Dataset):
         return mask
 
     def __get_identifiers(self) -> np.ndarray:
-        return np.array([identifier for identifier in self.__samples["id"]])
+        return np.array(
+            [identifier["id"]
+             for identifier in self.__samples]
+        )
 
     def __split_identifiers(self, stage, train_size, shuffle, random_state) -> list:
         identifiers = self.__get_identifiers()
@@ -227,10 +230,13 @@ class HuBMAPDataset(Dataset):
         if shuffle:
             np.random.shuffle(indices)
 
-        train_length = (self.total_length // 100) * train_size
+        train_length = round(self.total_length * train_size)
         val_length = self.total_length - train_length
-        train_indices = identifiers[0:val_length]
-        val_indices = identifiers[val_length:train_length]
+
+        assert self.total_length == train_length + val_length
+
+        val_indices = indices[0:val_length]
+        train_indices = indices[val_length:train_length]
 
         stage_indices = {
             "train": train_indices,
