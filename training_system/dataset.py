@@ -1,3 +1,5 @@
+__all__ = ["AttributeValidator", "DatasetConfiguration", "HuBMAPDataset"]
+
 import torch
 from torch.utils.data import Dataset
 import albumentations as A
@@ -107,9 +109,14 @@ class DatasetConfiguration:
             os.makedirs(self.__root_dir, exist_ok=True)
 
     def load_config(self, filename: str) -> dict:
-        path = self.__get_path(filename)
         if os.path.isfile(filename):
             path = filename
+            pritn("Warning! The downloaded configuration file "
+                  "is not located in the root directory "
+                  "and may not be secure.")
+        else:
+            path = self.__get_path(filename)
+
         with open(path, mode="r") as f:
             data = yaml.load(stream=f, Loader=yaml.SafeLoader)
         return data
