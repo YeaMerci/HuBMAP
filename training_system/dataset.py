@@ -115,6 +115,9 @@ class DatasetConfiguration:
         path = os.path.join(self.__root_dir, filename)
         return path
 
+    def get_configs(self) -> list:
+        return os.listdir(self.__root_dir)
+
     def write_config(self, data: dict[dict, ...], filename: str) -> None:
         path = self.__get_path(filename)
         with open(path, mode="w") as f:
