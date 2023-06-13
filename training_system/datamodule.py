@@ -7,26 +7,26 @@ from typing import Union
 
 
 class HuBMAPDataModule(pl.LightningDataModule):
-    def __init__(self, target_path: str,
+    def __init__(self,
+                 target_path: str,
                  data_path: str,
                  transform: Union[T.Compose, A.Compose],
-                 train_size: float = 0.67,
-                 val_size: float = 0.165,
-                 test_size: float = 0.165,
+                 train_size: float = 0.85,
                  batch_size: int = 4,
                  num_workers: int = 4):
+
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.target_path = target_path
         self.data_path = data_path
         self.train_size = train_size
-        self.val_size = val_size
-        self.test_size = test_size
+
         self.data_train = None
         self.data_val = None
         self.data_test = None
         self.data_predict = None
+
         self.mean = [0.485, 0.456, 0.406]
         self.std = [0.229, 0.224, 0.225]
         self.train_transform = transform
@@ -40,7 +40,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
         ])
 
     def setup(self, stage: str = None) -> None:
-        self.data_train = PhotopicVisionDataset(
+        self.data_train = HuBMAPDataset(
             target_path=self.target_path,
             data_path=self.data_path,
             transforms=self.train_transform,
@@ -52,7 +52,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
             random_state=42
             )
 
-        self.data_val = PhotopicVisionDataset(
+        self.data_val = HuBMAPDataset(
             target_path=self.target_path,
             data_path=self.data_path,
             transforms=self.eval_transform,
@@ -64,7 +64,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
             random_state=42
             )
 
-        self.data_test = PhotopicVisionDataset(
+        self.data_test = HuBMAPDataset(
             target_path=self.target_path,
             data_path=self.data_path,
             transforms=self.eval_transform,
@@ -76,7 +76,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
             random_state=42
             )
 
-        self.data_predict = PhotopicVisionDataset(
+        self.data_predict = HuBMAPDataset(
             target_path=self.target_path,
             data_path=self.data_path,
             transforms=self.eval_transform,
