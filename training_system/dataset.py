@@ -109,21 +109,26 @@ class DatasetConfiguration:
             os.makedirs(self.__root_dir, exist_ok=True)
 
     def load_config(self, filename: str) -> dict:
-        if os.path.isfile(filename):
-            path = filename
-            pritn("Warning! The downloaded configuration file "
-                  "is not located in the root directory "
-                  "and may not be secure.")
-        else:
-            path = self.__get_path(filename)
-
+        path = self.__get_path(filename)
         with open(path, mode="r") as f:
             data = yaml.load(stream=f, Loader=yaml.SafeLoader)
         return data
 
     def __get_path(self, filename: str) -> str:
-        path = os.path.join(self.__root_dir, filename)
-        return path
+        if os.path.isfile(filename):
+            print("Warning! The configuration file "
+                  "is not located in the root directory "
+                  "and may not be secure.")
+            return filename
+
+        elif len(filename.split("/")) == 2:
+            return os.path.join(self.__root_dir, filename)
+
+        else:
+            raise ValueError(
+                f"Filename was expected to be a path"
+                f" or file name, but obtained: {filename}"
+            )
 
     def get_configs(self) -> list[str, ...]:
         return os.listdir(self.__root_dir)
