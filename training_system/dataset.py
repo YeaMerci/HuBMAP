@@ -1,4 +1,4 @@
-__all__ = ["AttributeValidator", "DatasetConfiguration", "HuBMAPDataset"]
+__all__ = ["HuBMAPDataset", "DebugDataset"]
 
 import torch
 from torch.utils.data import Dataset
@@ -258,3 +258,33 @@ class HuBMAPDataset(Dataset):
             "val": val_indices
         }
         return stage_indices[stage]
+
+
+class DebugDataset(HuBMAPDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def show(image, mask, original: bool = True, alpha: float = 0.5, timeout: int = 2) -> None:
+        description = "original" if original else "with mask"
+        winname = f"Image {description}"
+        print(f"{Fore.CYAN}|| Image shape: {Fore.BLUE}{np.asarray(image).shape}{Fore.CYAN} ||")
+        print(f"|| Mask shape: {Fore.BLUE}{np.asarray(mask).shape}{Fore.CYAN} ||")
+        if not original:
+            image = cv2.addWeighted(image, 1-alpha, mask, alpha, 0)
+        cv2.imshow(winname, image)
+        cv2.waitKey(timeout)
+
+    def roll_transformations(self, start_roll: int, end_roll: int, original: bool,
+                             transforms: A.Compose, timeout: int = 0, alpha: float = 0.5) -> None:
+        for i in range(self.__len__()):
+            image, mask = self.__getitem__(i)
+            image, mask = transformed["image"], transformed["mask"]
+            self.show(image, mask, original, alpha, timeout)
+        cv2.destroyAllWindows()
+
+        mode = "original" if original else "with mask"
+        print(f"\n{Fore.CYAN}|| {Fore.BLUE}Run-in complete!\n"
+              f"{Fore.CYAN}|| Rolled out images: {Fore.BLUE}{end_roll-start_roll}\n"
+              f"{Fore.CYAN}|| Scroll mode: {Fore.BLUE}{mode}\n"
+              f"{Fore.CYAN}|| Alpha channel: {Fore.BLUE}{alpha}{Fore.WHITE}")
