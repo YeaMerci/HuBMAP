@@ -33,14 +33,15 @@ class DatasetValidator:
             shuffle,
             random_state
         )
-        self.__split_checking(train_size)
-        self.__stage_checking(stage)
 
         self.__path_checking(
             annotation_path,
             image_path,
             config_path
         )
+
+        self.__split_checking(train_size)
+        self.__stage_checking(stage)
 
     @staticmethod
     def __type_checking(annotation_path: str,
@@ -78,12 +79,11 @@ class DatasetValidator:
 
 
 class DatasetBuilder:
-    def __init__(self):
-        self.environment_variables = {
-            "CONFIG_DATASET_PATH": os.path.join(os.getcwd(), "config/dataset"),
-        }
-
+    def __init__(self, root_dir: str):
         self._config = None
+        self.__root_dir = root_dir if root_dir else os.getcwd()
+        self.__runs_dirpath = None
+        self.__image_dirpath = None
         self.__find_root()
 
         self.__keys = (
@@ -99,9 +99,9 @@ class DatasetBuilder:
         }
         self.sample_config = {}.fromkeys(self.__keys, self.__values)
 
-    def _build_dataset(self, config_path: str):
-        self.__init__()
-        os.environ.update(self.environment_variables)
+    def _build_dataset(self, config_path: str, root_dir: str = None) -> None:
+        self.__init__(root_dir)
+        self.__build_struct()
         self._config = self.load_config(config_path)
 
     @property
@@ -112,9 +112,18 @@ class DatasetBuilder:
     def environment_variables(self, variables: dict) -> None:
         self.__environment_variables = variables
 
+    def __build_struct(self):
+        self.__config_dirpath = os.path.join(self.__root_dir, "config/dataset")
+        self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
+        self.__image_dirpath = os.path.join(self.__config_dirpath, "image")
+
     def __find_root(self) -> None:
-        if not os.path.exists(self.__root_dir):
-            os.makedirs(self.__root_dir, exist_ok=True)
+        if os.path.exists(self.__root_dir):
+            self.
+            for dir in structure:
+                os.makedirs(self.__config_dirpath, exist_ok=True)
+        else:
+            raise ValueError("Could not find root directory!")
 
     def load_config(self, filename: str) -> dict:
         path = self.__get_path(filename)
@@ -147,7 +156,11 @@ class DatasetBuilder:
             yaml.safe_dump(stream=f, data=data)
 
 
-class HuBMAPDataset(DatasetValidator, DatasetBuilder, Dataset):
+class HuBMAPDataset(
+    DatasetValidator,
+    DatasetBuilder,
+    Dataset
+):
     def __init__(self,
                  stage: str,
                  annotation_path: str,
