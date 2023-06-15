@@ -137,7 +137,7 @@ class DatasetBuilder:
             return filename
 
         elif len(filename.split("/")) == 2:
-            return os.path.join(self.__root_dir, filename)
+            return os.path.join(self.__image_dirpath, filename)
 
         else:
             raise ValueError(
@@ -145,8 +145,11 @@ class DatasetBuilder:
                 f" or file name, but obtained: {filename}"
             )
 
-    def get_configs(self) -> list[str, ...]:
-        return os.listdir(self.__root_dir)
+    def get_config_images(self) -> list[str, ...]:
+        return os.listdir(self.__image_dirpath)
+
+    def get_config_runs(self) -> list[str, ...]:
+        return os.listdir(self.__runs_dirpath)
 
     def write_config(self, data: dict[dict, ...], filename: str) -> None:
         path = self.__get_path(filename)
@@ -164,13 +167,14 @@ class HuBMAPDataset(
                  annotation_path: str,
                  image_path: str,
                  config_path: str = None,
+                 root_dir: str = None,
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
                  random_state: int = None
                  ):
         super().__init__(*args, **kwargs)
-        super()._build_dataset(config_path)
+        super()._build_dataset(config_path, root_dir)
 
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
