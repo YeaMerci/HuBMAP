@@ -82,8 +82,11 @@ class DatasetBuilder:
     def __init__(self, root_dir: str):
         self._config = None
         self.__root_dir = root_dir if root_dir else os.getcwd()
+        self.__config_dirpath = None
         self.__runs_dirpath = None
         self.__image_dirpath = None
+        self.__dir_struct = None
+        self.__build_struct()
         self.__find_root()
 
         self.__keys = (
@@ -101,19 +104,22 @@ class DatasetBuilder:
 
     def _build_dataset(self, config_path: str, root_dir: str = None) -> None:
         self.__init__(root_dir)
-        self.__build_struct()
         self._config = self.load_config(config_path)
 
     def __build_struct(self):
         self.__config_dirpath = os.path.join(self.__root_dir, "config/dataset")
         self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
         self.__image_dirpath = os.path.join(self.__config_dirpath, "image")
+        self.__dir_struct = (
+            self.__config_dirpath,
+            self.__runs_dirpath,
+            self.__image_dirpath
+        )
 
     def __find_root(self) -> None:
         if os.path.exists(self.__root_dir):
-            self.
-            for dir in structure:
-                os.makedirs(self.__config_dirpath, exist_ok=True)
+            for dirpath in self.__dir_struct:
+                os.makedirs(dirpath, exist_ok=True)
         else:
             raise ValueError("Could not find root directory!")
 
