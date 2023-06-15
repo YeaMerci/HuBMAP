@@ -78,32 +78,18 @@ class DatasetValidator:
         assert stage in ["train", "val"]
 
 
-class DatasetBuilder:
-    def __init__(self, root_dir: str):
-        self._config = None
+class DatasetBuilder(DatasetValidator):
+    def __init__(self, root_dir: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__root_dir = root_dir if root_dir else os.getcwd()
+
         self.__config_dirpath = None
         self.__runs_dirpath = None
         self.__image_dirpath = None
         self.__dir_struct = None
+
         self.__build_struct()
         self.__find_root()
-
-        self.__keys = (
-            "background", "blood_vessel",
-            "glomerulus", "unsure", "border"
-        )
-
-        self.__values = {
-            "apply_mask": True,
-            "label": 0,
-            "rgb": (0, 0, 0),
-            "loss_weight": None
-        }
-        self.sample_config = {}.fromkeys(self.__keys, self.__values)
-
-    def _build_dataset(self, config_path: str, root_dir: str = None) -> None:
-        self.__init__(root_dir)
         self._config = self.load_config(config_path)
 
     def __build_struct(self):
@@ -157,8 +143,47 @@ class DatasetBuilder:
             yaml.safe_dump(stream=f, data=data)
 
 
+class DatasetImage:
+    def __init__(self):
+        self.main_struct: dict = {
+            "head": {},
+            "body": {}
+        }
+
+        self.body_keys: tuple = (
+            "background", "blood_vessel",
+            "glomerulus", "unsure", "border"
+        )
+
+        self.body_values: dict = {
+            "apply_mask": True,
+            "label": 0,
+            "rgb": (0, 0, 0),
+            "loss_weight": None
+        }
+
+        self.head_keys: tuple = (
+            "background", "blood_vessel",
+            "glomerulus", "unsure", "border"
+        )
+
+        self.head_values: dict = {
+            "apply_mask": True,
+            "label": 0,
+            "rgb": (0, 0, 0),
+            "loss_weight": None
+        }
+
+    def generate_pattern(self):
+        self.main_struct["head"] = {}.fromkeys(
+            self.head_keys, self.head_values
+        )
+        self.main_struct["body"] = {}.fromkeys(
+            self.body_keys, self.body_values
+        )
+
+
 class HuBMAPDataset(
-    DatasetValidator,
     DatasetBuilder,
     Dataset
 ):
@@ -174,7 +199,6 @@ class HuBMAPDataset(
                  random_state: int = None
                  ):
         super().__init__(*args, **kwargs)
-        super()._build_dataset(config_path, root_dir)
 
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
