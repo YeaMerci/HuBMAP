@@ -16,7 +16,7 @@ from tqdm import tqdm
 import json
 
 
-class AttributeValidator:
+class DatasetValidator:
     def __init__(self,
                  annotation_path: str,
                  image_path: str,
