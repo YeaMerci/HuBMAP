@@ -5,8 +5,6 @@ from torch.utils.data import Dataset
 import albumentations as A
 import torchvision.transforms as T
 import cv2
-from sklearn.model_selection import train_test_split
-import pandas as pd
 import numpy as np
 import os
 import yaml
@@ -85,7 +83,7 @@ class DatasetBuilder:
             "CONFIG_DATASET_PATH": os.path.join(os.getcwd(), "config/dataset"),
         }
 
-        self.__config = None
+        self._config = None
         self.__find_root()
 
         self.__keys = (
@@ -112,7 +110,7 @@ class DatasetBuilder:
 
     @environment_variables.setter
     def environment_variables(self, variables: dict) -> None:
-        self.__environment_variables.update(variables)
+        self.__environment_variables = variables
 
     def __find_root(self) -> None:
         if not os.path.exists(self.__root_dir):
