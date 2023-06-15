@@ -5,8 +5,6 @@ from torch.utils.data import Dataset
 import albumentations as A
 import torchvision.transforms as T
 import cv2
-from sklearn.model_selection import train_test_split
-import pandas as pd
 import numpy as np
 import os
 import yaml
@@ -16,7 +14,7 @@ from tqdm import tqdm
 import json
 
 
-class AttributeValidator:
+class DatasetValidator:
     def __init__(self,
                  annotation_path: str,
                  image_path: str,
@@ -36,19 +34,14 @@ class AttributeValidator:
             random_state
         )
 
-        self.__split_checking(
-            train_size
-        )
-
         self.__path_checking(
             annotation_path,
             image_path,
             config_path
         )
 
-        self.__stage_checking(
-            stage
-        )
+        self.__split_checking(train_size)
+        self.__stage_checking(stage)
 
     @staticmethod
     def __type_checking(annotation_path: str,
@@ -72,10 +65,9 @@ class AttributeValidator:
         assert train_size <= 1 or train_size >= 0
 
     @staticmethod
-    def __path_checking(
-            annotation_path: str,
-            image_path: str,
-            config_path: str) -> None:
+    def __path_checking(annotation_path: str,
+                        image_path: str,
+                        config_path: str) -> None:
 
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
@@ -86,27 +78,43 @@ class AttributeValidator:
         assert stage in ["train", "val"]
 
 
-class DatasetConfiguration:
-    def __init__(self):
-        self.__root_dir = os.path.join(os.getcwd(), "config/dataset")
-        self.__find_root()
+class DatasetBuilder(DatasetValidator):
+    def __init__(self,
+                 root_path: str,
+                 annotation_path: str,
+                 image_path: str,
+                 config_path: str,
+                 train_size: float,
+                 stage: str,
+                 shuffle: bool,
+                 random_state: int):
 
-        self.__keys = (
-            "background", "blood_vessel",
-            "glomerulus", "unsure"
+        super().__init__(
+            annotation_path, image_path,
+            config_path, train_size, stage,
+            shuffle, random_state
         )
 
-        self.__values = {
-            "apply_mask": True,
-            "label": 0,
-            "rgb": (0, 0, 0),
-            "loss_weight": None
-        }
-        self.sample_config = {}.fromkeys(self.__keys, self.__values)
+        self.__root_dirpath = root_path if root_path else os.getcwd()
+        self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
+        self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
+        self.__image_dirpath = os.path.join(self.__config_dirpath, "images")
 
-    def __find_root(self) -> None:
-        if not os.path.exists(self.__root_dir):
-            os.makedirs(self.__root_dir, exist_ok=True)
+        self.__dir_struct = (
+            self.__config_dirpath,
+            self.__runs_dirpath,
+            self.__image_dirpath
+        )
+
+        self.__build_struct()
+        self._config = self.load_config(config_path)
+
+    def __build_struct(self) -> None:
+        if os.path.exists(self.__root_dir):
+            for dirpath in self.__dir_struct:
+                os.makedirs(dirpath, exist_ok=True)
+        else:
+            raise ValueError("Could not find root directory!")
 
     def load_config(self, filename: str) -> dict:
         path = self.__get_path(filename)
@@ -122,7 +130,7 @@ class DatasetConfiguration:
             return filename
 
         elif len(filename.split("/")) == 2:
-            return os.path.join(self.__root_dir, filename)
+            return os.path.join(self.__image_dirpath, filename)
 
         else:
             raise ValueError(
@@ -130,8 +138,11 @@ class DatasetConfiguration:
                 f" or file name, but obtained: {filename}"
             )
 
-    def get_configs(self) -> list[str, ...]:
-        return os.listdir(self.__root_dir)
+    def get_config_images(self) -> list[str, ...]:
+        return os.listdir(self.__image_dirpath)
+
+    def get_config_runs(self) -> list[str, ...]:
+        return os.listdir(self.__runs_dirpath)
 
     def write_config(self, data: dict[dict, ...], filename: str) -> None:
         path = self.__get_path(filename)
@@ -139,40 +150,77 @@ class DatasetConfiguration:
             yaml.safe_dump(stream=f, data=data)
 
 
-class HuBMAPDataset(Dataset):
+class DatasetImage:
+    def __init__(self):
+        self.main_struct: dict = {
+            "head": {},
+            "body": {}
+        }
+
+        self.body_keys: tuple = (
+            "background", "blood_vessel",
+            "glomerulus", "unsure", "border"
+        )
+
+        self.body_values: dict = {
+            "apply_mask": True,
+            "label": 0,
+            "rgb": (0, 0, 0),
+            "loss_weight": None
+        }
+
+        self.head_keys: tuple = (
+            "background", "blood_vessel",
+            "glomerulus", "unsure", "border"
+        )
+
+        self.head_values: dict = {
+            "apply_mask": True,
+            "label": 0,
+            "rgb": (0, 0, 0),
+            "loss_weight": None
+        }
+
+    def generate_pattern(self):
+        self.main_struct["head"] = {}.fromkeys(
+            self.head_keys, self.head_values
+        )
+        self.main_struct["body"] = {}.fromkeys(
+            self.body_keys, self.body_values
+        )
+
+
+class HuBMAPDataset(
+    DatasetBuilder,
+    Dataset
+):
     def __init__(self,
                  stage: str,
                  annotation_path: str,
                  image_path: str,
-                 config_path: str = None,
+                 config_path: str,
+                 root_path: str = None,
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
                  random_state: int = None
                  ):
 
-        AttributeValidator(
-            annotation_path,
-            image_path,
-            config_path,
-            train_size,
-            stage,
-            shuffle,
-            random_state
+        super().__init__(
+            root_path, annotation_path,
+            image_path, config_path,
+            train_size, stage,
+            shuffle, random_state
         )
 
-        self.configurator = DatasetConfiguration()
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
-        self.__config = self.configurator.load_config(config_path)
         self.transforms = transforms
         self.total_length = None
 
         self.__identifiers = self.__split_identifiers(
-            stage,
-            train_size,
-            shuffle,
-            random_state
+            stage, train_size,
+            shuffle, random_state
         )
 
     def __len__(self) -> int:
@@ -217,7 +265,7 @@ class HuBMAPDataset(Dataset):
 
         for vessel in annotations:
             vessel_type = vessel["type"]
-            config = self.__config[vessel_type]
+            config = self._config[vessel_type]
             apply_mask = config["apply_mask"]
             label = config["label"]
 
@@ -263,10 +311,10 @@ class HuBMAPDataset(Dataset):
 class PostProcessing:
     def __init__(self,):
         self.__colormap = {
-    0: [0, 0, 0,],
-    1: [255, 8, 8],
-    2: [8, 12, 255]
-}
+            0: [0, 0, 0],
+            1: [255, 8, 8],
+            2: [8, 12, 255]
+        }
 
     def __decode_mask(self, mask: np.ndarray) -> np.ndarray:
         if mask.ndim == 2:
@@ -286,17 +334,14 @@ class PostProcessing:
         return mask.transpose(1, 2, 0)
 
     @staticmethod
-    def __get_alpha_channel(mask: np.ndarray,
-                            alpha: float = 1,
-                            background: int = 0) -> np.ndarray:
-        mask = np.where(mask != background, round(255*alpha), 0)
+    def __get_alpha_channel(mask: np.ndarray, alpha: float = 1) -> np.ndarray:
+        mask = np.where(mask != 0, round(255*alpha), 0)
         return np.expand_dims(mask, axis=0)
 
     @staticmethod
-    def __apply_alpha_channel(image: np.ndarray,
-                              alpha_channel: np.ndarray) -> np.ndarray:
-        image = image.transpose(2, 0, 1)
-        red_channel, green_channel, blue_channel = np.array_split(image, 3, axis=0)
+    def __apply_alpha_channel(mask: np.ndarray, alpha_channel: np.ndarray) -> np.ndarray:
+        mask = mask.transpose(2, 0, 1)
+        red_channel, green_channel, blue_channel = np.array_split(mask, 3, axis=0)
         return np.concatenate(
             [red_channel,
              green_channel,
@@ -304,15 +349,9 @@ class PostProcessing:
              alpha_channel], axis=0
         )
 
-    def __add_mask(self):
-        pass
-
-    def __call__(self,
-                 image: np.ndarray,
-                 mask: np.ndarray,
-                 alpha: float = 0.5) -> np.ndarray:
+    def __call__(self, mask: np.ndarray, alpha: float = 0.5) -> np.ndarray:
         decoded = self.__decode_mask(mask)
-        alpha_channel = self.__get_alpha_channel(mask, alpha=alpha)
+        alpha_channel = self.__get_alpha_channel(mask, alpha)
         image = self.__apply_alpha_channel(decoded, alpha_channel)
         return image.transpose(1, 2, 0)
 
