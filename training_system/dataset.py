@@ -139,7 +139,7 @@ class DatasetConfiguration:
             yaml.safe_dump(stream=f, data=data)
 
 
-class HuBMAPDataset(Dataset):
+class HuBMAPDataset(DatasetValidator, Dataset):
     def __init__(self,
                  stage: str,
                  annotation_path: str,
@@ -150,16 +150,7 @@ class HuBMAPDataset(Dataset):
                  shuffle: bool = True,
                  random_state: int = None
                  ):
-
-        AttributeValidator(
-            annotation_path,
-            image_path,
-            config_path,
-            train_size,
-            stage,
-            shuffle,
-            random_state
-        )
+        super().__init__(*args, **kwargs)
 
         self.configurator = DatasetConfiguration()
         self.__image_path = image_path
