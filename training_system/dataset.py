@@ -79,9 +79,21 @@ class DatasetValidator:
 
 
 class DatasetBuilder(DatasetValidator):
-    def __init__(self, root_dir: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__root_dir = root_dir if root_dir else os.getcwd()
+    def __init__(self,
+                 root_path: str,
+                 annotation_path: str,
+                 image_path: str,
+                 config_path: str,
+                 train_size: float,
+                 stage: str,
+                 shuffle: bool,
+                 random_state: int):
+        super().__init__(
+            annotation_path, image_path,
+            config_path, train_size, stage,
+            shuffle, random_state
+        )
+        self.__root_dirpath = root_path if root_path else os.getcwd()
 
         self.__config_dirpath = None
         self.__runs_dirpath = None
@@ -93,9 +105,10 @@ class DatasetBuilder(DatasetValidator):
         self._config = self.load_config(config_path)
 
     def __build_struct(self):
-        self.__config_dirpath = os.path.join(self.__root_dir, "config/dataset")
+        self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
         self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
         self.__image_dirpath = os.path.join(self.__config_dirpath, "image")
+
         self.__dir_struct = (
             self.__config_dirpath,
             self.__runs_dirpath,
@@ -191,14 +204,20 @@ class HuBMAPDataset(
                  stage: str,
                  annotation_path: str,
                  image_path: str,
-                 config_path: str = None,
-                 root_dir: str = None,
+                 config_path: str,
+                 root_path: str = None,
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
                  random_state: int = None
                  ):
-        super().__init__(*args, **kwargs)
+
+        super().__init__(
+            root_path, annotation_path,
+            image_path, config_path,
+            train_size, stage,
+            shuffle, random_state
+        )
 
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
