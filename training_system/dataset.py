@@ -104,14 +104,6 @@ class DatasetBuilder:
         self.__build_struct()
         self._config = self.load_config(config_path)
 
-    @property
-    def environment_variables(self) -> dict:
-        return self.__environment_variables
-
-    @environment_variables.setter
-    def environment_variables(self, variables: dict) -> None:
-        self.__environment_variables = variables
-
     def __build_struct(self):
         self.__config_dirpath = os.path.join(self.__root_dir, "config/dataset")
         self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
