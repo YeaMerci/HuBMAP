@@ -35,19 +35,13 @@ class DatasetValidator:
             shuffle,
             random_state
         )
-
-        self.__split_checking(
-            train_size
-        )
+        self.__split_checking(train_size)
+        self.__stage_checking(stage)
 
         self.__path_checking(
             annotation_path,
             image_path,
             config_path
-        )
-
-        self.__stage_checking(
-            stage
         )
 
     @staticmethod
@@ -72,10 +66,9 @@ class DatasetValidator:
         assert train_size <= 1 or train_size >= 0
 
     @staticmethod
-    def __path_checking(
-            annotation_path: str,
-            image_path: str,
-            config_path: str) -> None:
+    def __path_checking(annotation_path: str,
+                        image_path: str,
+                        config_path: str) -> None:
 
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
@@ -86,7 +79,7 @@ class DatasetValidator:
         assert stage in ["train", "val"]
 
 
-class DatasetConfiguration:
+class DatasetBuilder:
     def __init__(self):
         self.__root_dir = os.path.join(os.getcwd(), "config/dataset")
         self.__find_root()
