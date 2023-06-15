@@ -81,12 +81,16 @@ class DatasetValidator:
 
 class DatasetBuilder:
     def __init__(self):
-        self.__root_dir = os.path.join(os.getcwd(), "config/dataset")
+        self.environment_variables = {
+            "CONFIG_DATASET_PATH": os.path.join(os.getcwd(), "config/dataset"),
+        }
+
+        self.__config = None
         self.__find_root()
 
         self.__keys = (
             "background", "blood_vessel",
-            "glomerulus", "unsure"
+            "glomerulus", "unsure", "border"
         )
 
         self.__values = {
@@ -96,6 +100,19 @@ class DatasetBuilder:
             "loss_weight": None
         }
         self.sample_config = {}.fromkeys(self.__keys, self.__values)
+
+    def _build_dataset(self, config_path: str):
+        self.__init__()
+        os.environ.update(self.environment_variables)
+        self._config = self.load_config(config_path)
+
+    @property
+    def environment_variables(self) -> dict:
+        return self.__environment_variables
+
+    @environment_variables.setter
+    def environment_variables(self, variables: dict) -> None:
+        self.__environment_variables.update(variables)
 
     def __find_root(self) -> None:
         if not os.path.exists(self.__root_dir):
@@ -132,7 +149,7 @@ class DatasetBuilder:
             yaml.safe_dump(stream=f, data=data)
 
 
-class HuBMAPDataset(DatasetValidator, Dataset):
+class HuBMAPDataset(DatasetValidator, DatasetBuilder, Dataset):
     def __init__(self,
                  stage: str,
                  annotation_path: str,
@@ -144,19 +161,16 @@ class HuBMAPDataset(DatasetValidator, Dataset):
                  random_state: int = None
                  ):
         super().__init__(*args, **kwargs)
+        super()._build_dataset(config_path)
 
-        self.configurator = DatasetConfiguration()
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
-        self.__config = self.configurator.load_config(config_path)
         self.transforms = transforms
         self.total_length = None
 
         self.__identifiers = self.__split_identifiers(
-            stage,
-            train_size,
-            shuffle,
-            random_state
+            stage, train_size,
+            shuffle, random_state
         )
 
     def __len__(self) -> int:
@@ -201,7 +215,7 @@ class HuBMAPDataset(DatasetValidator, Dataset):
 
         for vessel in annotations:
             vessel_type = vessel["type"]
-            config = self.__config[vessel_type]
+            config = self._config[vessel_type]
             apply_mask = config["apply_mask"]
             label = config["label"]
 
