@@ -260,31 +260,111 @@ class HuBMAPDataset(Dataset):
         return stage_indices[stage]
 
 
-class DebugDataset(HuBMAPDataset):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class PostProcessing:
+    def __init__(self,):
+        self.__colormap = {
+    0: [0, 0, 0,],
+    1: [255, 8, 8],
+    2: [8, 12, 255]
+}
+
+    def __decode_mask(self, mask: np.ndarray) -> np.ndarray:
+        if mask.ndim == 2:
+            mask = np.expand_dims(mask, axis=0)
+
+        elif mask.ndim != 3:
+            raise ValueError(
+                f"Input matrix must have a shape of 1xHxW, "
+                f"but expected shape {mask.shape}"
+            )
+
+        mask = np.apply_along_axis(
+            func1d=lambda index: self.__colormap[int(index)],
+            axis=0,
+            arr=mask,
+        )
+        return mask.transpose(1, 2, 0)
 
     @staticmethod
-    def show(image, mask, original: bool = True, alpha: float = 0.5, timeout: int = 2) -> None:
+    def __get_alpha_channel(mask: np.ndarray,
+                            alpha: float = 1,
+                            background: int = 0) -> np.ndarray:
+        mask = np.where(mask != background, round(255*alpha), 0)
+        return np.expand_dims(mask, axis=0)
+
+    @staticmethod
+    def __apply_alpha_channel(image: np.ndarray,
+                              alpha_channel: np.ndarray) -> np.ndarray:
+        image = image.transpose(2, 0, 1)
+        red_channel, green_channel, blue_channel = np.array_split(image, 3, axis=0)
+        return np.concatenate(
+            [red_channel,
+             green_channel,
+             blue_channel,
+             alpha_channel], axis=0
+        )
+
+    def __add_mask(self):
+        pass
+
+    def __call__(self,
+                 image: np.ndarray,
+                 mask: np.ndarray,
+                 alpha: float = 0.5) -> np.ndarray:
+        decoded = self.__decode_mask(mask)
+        alpha_channel = self.__get_alpha_channel(mask, alpha=alpha)
+        image = self.__apply_alpha_channel(decoded, alpha_channel)
+        return image.transpose(1, 2, 0)
+
+
+class DebugDataset(HuBMAPDataset):
+    def __init__(self, spins: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert spins > self.__len__() or spins < self.__len__()
+        self.__spins = spins
+
+    @staticmethod
+    def show(image,
+             mask,
+             original: bool = True,
+             alpha: float = 0.5,
+             timeout: int = 2
+             ) -> None:
+
         description = "original" if original else "with mask"
         winname = f"Image {description}"
-        print(f"{Fore.CYAN}|| Image shape: {Fore.BLUE}{np.asarray(image).shape}{Fore.CYAN} ||")
-        print(f"|| Mask shape: {Fore.BLUE}{np.asarray(mask).shape}{Fore.CYAN} ||")
+
+        print(
+            f"{Fore.CYAN}|| Image shape: {Fore.BLUE}"
+            f"{np.asarray(image).shape}{Fore.CYAN} ||"
+        )
+
+        print(
+            f"|| Mask shape: {Fore.BLUE}"
+            f"{np.asarray(mask).shape}{Fore.CYAN} ||"
+        )
+
         if not original:
             image = cv2.addWeighted(image, 1-alpha, mask, alpha, 0)
         cv2.imshow(winname, image)
         cv2.waitKey(timeout)
 
-    def roll_transformations(self, start_roll: int, end_roll: int, original: bool,
-                             transforms: A.Compose, timeout: int = 0, alpha: float = 0.5) -> None:
+    def roll_transformations(self,
+                             start_roll: int,
+                             end_roll: int,
+                             original: bool,
+                             timeout: int = 0,
+                             alpha: float = 0.5
+                             ) -> None:
+
         for i in range(self.__len__()):
             image, mask = self.__getitem__(i)
-            image, mask = transformed["image"], transformed["mask"]
             self.show(image, mask, original, alpha, timeout)
         cv2.destroyAllWindows()
 
-        mode = "original" if original else "with mask"
-        print(f"\n{Fore.CYAN}|| {Fore.BLUE}Run-in complete!\n"
-              f"{Fore.CYAN}|| Rolled out images: {Fore.BLUE}{end_roll-start_roll}\n"
-              f"{Fore.CYAN}|| Scroll mode: {Fore.BLUE}{mode}\n"
-              f"{Fore.CYAN}|| Alpha channel: {Fore.BLUE}{alpha}{Fore.WHITE}")
+        print(
+            f"\n{Fore.CYAN}|| {Fore.BLUE}Run-in complete!\n"
+            f"{Fore.CYAN}|| Rolled out images: {Fore.BLUE}{end_roll-start_roll}\n"
+            f"{Fore.CYAN}|| Scroll mode: {Fore.BLUE}{'original' if original else 'with mask'}\n"
+            f"{Fore.CYAN}|| Alpha channel: {Fore.BLUE}{alpha}{Fore.WHITE}"
+        )
