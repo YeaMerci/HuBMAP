@@ -98,7 +98,7 @@ class DatasetBuilder(DatasetValidator):
         self.__root_dirpath = root_path if root_path else os.getcwd()
         self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
         self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
-        self.__image_dirpath = os.path.join(self.__config_dirpath, "runs")
+        self.__image_dirpath = os.path.join(self.__config_dirpath, "images")
 
         self.__dir_struct = (
             self.__config_dirpath,
@@ -108,24 +108,6 @@ class DatasetBuilder(DatasetValidator):
 
         self.__build_struct()
         self._config = self.load_config(config_path)
-        self.__log_dict = {"args": {}}
-
-        self.log(
-            root_path=root_path,
-            annotation_path=annotation_path,
-            image_path=image_path,
-            config_path=config_path,
-            train_size=train_size,
-            stage=stage,
-            shuffle=shuffle,
-            random_state=random_state
-        )
-
-    def log(self, *args, **kwargs) -> None:
-        self.__log_dict.update(self._config)
-        self.__log_dict["args"].update(*args, **kwargs)
-        self.write_config(self.__log_dict, 0)
-        self.__log_dict = None
 
     def __build_struct(self) -> None:
         if os.path.exists(self.__root_dir):
