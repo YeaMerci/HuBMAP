@@ -159,7 +159,8 @@ class DatasetImage:
 
         self.head = {
             "instance": False,
-            "multiborder": False
+            "multiborder": False,
+            "thickness": 1
         }
 
     def generate_pattern(self) -> None:
@@ -239,22 +240,50 @@ class HuBMAPDataset(
         image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         return image
 
-    def __get_mask(self, idx: int) -> np.ndarray:
-        mask = np.zeros((512, 512), dtype=np.uint8)
+    def __get_target(self, idx: int) -> np.ndarray:
         annotations = self.__samples[idx]["annotations"]
+        mask = np.zeros((512, 512), dtype=np.uint8)
+        instance = self._head_config["instance"]
+        masks = [] if instance else None
 
         for vessel in annotations:
             vessel_type = vessel["type"]
-            config = self._config[vessel_type]
-            apply_mask = config["apply_mask"]
-            label = config["label"]
+            class_config = self._classes_config[vessel_type]
+            is_apply = class_config["apply"]
+            label = class_config["label"]
 
-            if apply_mask:
+            if is_apply:
                 coordinates = np.array(vessel["coordinates"])
-                mask = cv2.fillPoly(
-                    mask, pts=coordinates,
-                    color=(label, label, label)
-                )
+                mask = self.__get_mask(mask, label, coordinates)
+
+            if instance:
+                masks.append(mask)
+                mask = np.zeros((512, 512), dtype=np.uint8)
+        return masks if masks else mask
+
+    def __get_mask(self,
+                   mask: np.ndarray,
+                   label: int,
+                   coordinates: np.ndarray
+                   ) -> np.ndarray:
+
+        multiborder = self._head_config["multiborder"]
+        border_config = self._classes_config["border"]
+        is_apply = border_config["apply"]
+
+        mask = cv2.fillPoly(
+            mask, pts=coordinates,
+            color=(label, label, label)
+        )
+
+        if is_apply:
+            label = label+1 if multiborder else border_config["label"]
+            thickness = self._head_config["thickness"]
+            mask = cv2.polylines(
+                mask, coordinates,
+                isClosed=True, color=label,
+                thickness=thickness
+            )
         return mask
 
     def __get_identifiers(self) -> np.ndarray:
