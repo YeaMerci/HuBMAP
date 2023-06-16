@@ -22,7 +22,8 @@ class DatasetValidator:
                  train_size: float,
                  stage: str,
                  shuffle: bool,
-                 random_state: int):
+                 random_state: int
+                 ):
 
         self.__type_checking(
             annotation_path,
@@ -50,7 +51,8 @@ class DatasetValidator:
                         train_size: float,
                         stage: str,
                         shuffle: bool,
-                        random_state: int) -> None:
+                        random_state: int
+                        ) -> None:
 
         assert isinstance(image_path, str)
         assert isinstance(annotation_path, str)
@@ -67,7 +69,8 @@ class DatasetValidator:
     @staticmethod
     def __path_checking(annotation_path: str,
                         image_path: str,
-                        config_path: str) -> None:
+                        config_path: str
+                        ) -> None:
 
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
@@ -78,7 +81,7 @@ class DatasetValidator:
         assert stage in ["train", "val"]
 
 
-class DatasetBuilder(DatasetValidator):
+class DatasetBuilder:
     def __init__(self,
                  root_path: str,
                  annotation_path: str,
@@ -87,7 +90,8 @@ class DatasetBuilder(DatasetValidator):
                  train_size: float,
                  stage: str,
                  shuffle: bool,
-                 random_state: int):
+                 random_state: int
+                 ):
 
         super().__init__(
             annotation_path, image_path,
@@ -181,7 +185,7 @@ class DatasetImage:
             "loss_weight": None
         }
 
-    def generate_pattern(self):
+    def generate_pattern(self) -> None:
         self.main_struct["head"] = {}.fromkeys(
             self.head_keys, self.head_values
         )
@@ -192,6 +196,7 @@ class DatasetImage:
 
 class HuBMAPDataset(
     DatasetBuilder,
+    DatasetValidator,
     Dataset
 ):
     def __init__(self,
@@ -283,7 +288,13 @@ class HuBMAPDataset(
              for identifier in self.__samples]
         )
 
-    def __split_identifiers(self, stage, train_size, shuffle, random_state) -> np.ndarray:
+    def __split_identifiers(self,
+                            stage: str,
+                            train_size: float,
+                            shuffle: bool,
+                            random_state: int
+                            ) -> np.ndarray:
+
         identifiers = self.__get_identifiers()
         self.total_length = len(identifiers)
         indices = np.arange(self.total_length)
