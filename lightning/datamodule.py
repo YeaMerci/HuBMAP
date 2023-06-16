@@ -14,6 +14,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
                  target_path: str,
                  data_path: str,
                  config_path: str,
+                 root_path: str,
                  transform: Union[T.Compose, A.Compose],
                  train_size: float = 0.85,
                  batch_size: int = 4,
@@ -27,6 +28,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
         self.target_path = target_path
         self.data_path = data_path
         self.config_path = config_path
+        self.root_path = root_path
         self.train_size = train_size
         self.random_state = random_state
 
@@ -40,8 +42,8 @@ class HuBMAPDataModule(pl.LightningDataModule):
 
         self.train_transform = transform
         self.eval_transform = A.Compose([
-            A.Resize(height=transform.height,
-                     width=transform.width),
+            A.Resize(height=512,
+                     width=512),
             A.Normalize(mean=self.mean,
                         std=self.std),
             pytorch.ToTensorV2()
@@ -66,6 +68,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
                 transforms=self.train_transform,
                 stage=stage,
                 train_size=self.train_size,
+                root_path=self.root_path,
                 shuffle=True,
                 random_state=self.random_state
                 )
@@ -78,6 +81,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
                 transforms=self.eval_transform,
                 stage=stage,
                 train_size=self.train_size,
+                root_path=self.root_path,
                 shuffle=True,
                 random_state=self.random_state
                 )
