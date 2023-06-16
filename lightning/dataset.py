@@ -210,10 +210,29 @@ class HuBMAPDataset(
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         idx, identifier = self.__get_sample(idx)
         image = self.__get_image(identifier)
-        mask = self.__get_mask(idx)
+        target = self.__get_target(idx)
+        image, target = self.__gate_transforms(image, target)
+        return image.transpose(2, 0, 1), target
+
+    def __gate_transforms(self, image, target):
+        if isinstance(type(traget), list):
+            return self.__instance_transforms(image, target)
+        elif isinstance(type(traget), np.ndarray):
+            return self.__semantic_transforms(image, target)
+        else:
+            raise TypeError("Unsupported type!")
+
+    def __instance_transforms(self, image, masks):
+        image_copies = [image]*len(masks)
+        for index, (image, mask) in enumerate(zip(image_copies, masks)):
+            image, mask = self.__semantic_transforms(image, mask)
+            masks[index] = mask
+        return image, masks
+
+    def __semantic_transforms(self, image, mask):
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
-        return image.transpose(2, 0, 1), mask
+        return image, mask
 
     def __get_sample(self, idx: int) -> tuple[int, str]:
         idx = self.__identifiers[idx]
