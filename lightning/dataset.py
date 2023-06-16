@@ -38,7 +38,6 @@ class DatasetValidator:
         self.__path_checking(
             annotation_path,
             image_path,
-            config_path
         )
 
         self.__split_checking(train_size)
@@ -69,12 +68,9 @@ class DatasetValidator:
     @staticmethod
     def __path_checking(annotation_path: str,
                         image_path: str,
-                        config_path: str
                         ) -> None:
-
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
-        assert os.path.isfile(config_path)
 
     @staticmethod
     def __stage_checking(stage: str) -> None:
