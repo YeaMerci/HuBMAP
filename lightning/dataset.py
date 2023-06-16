@@ -99,6 +99,8 @@ class DatasetBuilder:
         self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
         self.__build_struct()
         self._config = self.load_config(config_path)
+        self._head_config = self._config["head"]
+        self._classes_config = self._config["classes"]
 
     def __build_struct(self) -> None:
         if os.path.exists(self.__root_dir):
