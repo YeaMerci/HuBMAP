@@ -150,7 +150,7 @@ class DatasetImage:
         )
 
         self.body_values: dict = {
-            "apply_mask": True,
+            "apply": True,
             "label": 0,
             "rgb": (0, 0, 0),
             "loss_weight": None
@@ -162,7 +162,7 @@ class DatasetImage:
         )
 
         self.head_values: dict = {
-            "apply_mask": True,
+            "apply": True,
             "label": 0,
             "rgb": (0, 0, 0),
             "loss_weight": None
