@@ -39,7 +39,7 @@ class ImageWriter(DatasetImage):
     def __init__(self):
         super().__init__()
         self.__path = os.path.join(
-            self.__root_path, "sample_image.yaml"
+            os.getcwd(), "sample_image.yaml"
         )
 
     def write_config(self, image: dict[dict, ...]) -> None:
