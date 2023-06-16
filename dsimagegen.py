@@ -1,6 +1,10 @@
+from dsimage import ImageWriter
+
+
 def main():
-    pass
+    writer = ImageWriter()
+    writer.generate_sample()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
