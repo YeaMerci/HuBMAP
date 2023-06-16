@@ -1,3 +1,7 @@
+import os
+import yaml
+
+
 class DatasetImage:
     def __init__(self):
         self.main_struct: dict = {
