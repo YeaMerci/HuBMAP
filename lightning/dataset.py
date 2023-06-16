@@ -97,22 +97,12 @@ class DatasetBuilder:
 
         self.__root_dirpath = root_path if root_path else os.getcwd()
         self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
-        self.__runs_dirpath = os.path.join(self.__config_dirpath, "runs")
-        self.__image_dirpath = os.path.join(self.__config_dirpath, "images")
-
-        self.__dir_struct = (
-            self.__config_dirpath,
-            self.__runs_dirpath,
-            self.__image_dirpath
-        )
-
         self.__build_struct()
         self._config = self.load_config(config_path)
 
     def __build_struct(self) -> None:
         if os.path.exists(self.__root_dir):
-            for dirpath in self.__dir_struct:
-                os.makedirs(dirpath, exist_ok=True)
+            os.makedirs(self.__config_dirpath, exist_ok=True)
         else:
             raise ValueError("Could not find root directory!")
 
@@ -130,7 +120,7 @@ class DatasetBuilder:
             return filename
 
         elif len(filename.split("/")) == 2:
-            return os.path.join(self.__image_dirpath, filename)
+            return os.path.join(self.__config_dirpath, filename)
 
         else:
             raise ValueError(
@@ -138,11 +128,8 @@ class DatasetBuilder:
                 f" or file name, but obtained: {filename}"
             )
 
-    def get_config_images(self) -> list[str, ...]:
-        return os.listdir(self.__image_dirpath)
-
-    def get_config_runs(self) -> list[str, ...]:
-        return os.listdir(self.__runs_dirpath)
+    def get_configs(self) -> list[str, ...]:
+        return os.listdir(self.__config_dirpath)
 
     def write_config(self, data: dict[dict, ...], filename: str) -> None:
         path = self.__get_path(filename)
@@ -233,7 +220,7 @@ class HuBMAPDataset(
         mask = self.__get_mask(idx)
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
-        return image, mask
+        return image.transpose(2, 0, 1), mask
 
     def __get_sample(self, idx: int) -> tuple[int, str]:
         idx = self.__identifiers[idx]
@@ -258,7 +245,7 @@ class HuBMAPDataset(
     def __get_image(self, identifier: str) -> np.ndarray:
         image_path = self.__get_image_path(identifier)
         image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
-        return image.transpose(2, 0, 1)
+        return image
 
     def __get_mask(self, idx: int) -> np.ndarray:
         mask = np.zeros((512, 512), dtype=np.uint8)
