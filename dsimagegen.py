@@ -3,8 +3,8 @@ from argparse import ArgumentParser
 
 
 def main(dirpath: str, filename: str):
-    writer = ImageWriter()
-    writer.generate_sample(dirpath, filename)
+    writer = ImageWriter(dirpath, filename)
+    writer.generate_sample()
 
 
 if __name__ == '__main__':
@@ -26,3 +26,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     main(args.dirpath, args.filename)
+

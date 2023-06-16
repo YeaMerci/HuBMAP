@@ -36,10 +36,16 @@ class DatasetImage:
 
 
 class ImageWriter(DatasetImage):
-    def __init__(self):
+    def __init__(self,
+                 dirpath: str = None,
+                 filename: str = "sample_image.yaml"
+                 ):
+
         super().__init__()
+        self.__filename = filename
+        self.__dirpath = dirpath if dirpath else os.getcwd()
         self.__path = os.path.join(
-            os.getcwd(), "sample_image.yaml"
+            self.__dirpath, self.__filename
         )
 
     def write_config(self, image: dict[dict, ...]) -> None:
