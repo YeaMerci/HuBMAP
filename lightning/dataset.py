@@ -150,7 +150,6 @@ class DatasetImage:
             "background", "blood_vessel",
             "glomerulus", "unsure", "border"
         )
-
         self.body_values: dict = {
             "apply": True,
             "label": 0,
@@ -158,22 +157,13 @@ class DatasetImage:
             "loss_weight": None
         }
 
-        self.head_keys: tuple = (
-            "background", "blood_vessel",
-            "glomerulus", "unsure", "border"
-        )
-
-        self.head_values: dict = {
-            "apply": True,
-            "label": 0,
-            "rgb": (0, 0, 0),
-            "loss_weight": None
+        self.head = {
+            "instance": False,
+            "multiborder": False
         }
 
     def generate_pattern(self) -> None:
-        self.main_struct["head"] = {}.fromkeys(
-            self.head_keys, self.head_values
-        )
+        self.main_struct["head"] = self.head
         self.main_struct["body"] = {}.fromkeys(
             self.body_keys, self.body_values
         )
