@@ -15,38 +15,36 @@ import json
 
 
 class DatasetValidator:
-    def __init__(self,
+    @classmethod
+    def validate(cls,
                  annotation_path: str,
                  image_path: str,
-                 config_path: str,
                  train_size: float,
                  stage: str,
                  shuffle: bool,
                  random_state: int
                  ):
 
-        self.__type_checking(
+        cls.__type_checking(
             annotation_path,
             image_path,
-            config_path,
             train_size,
             stage,
             shuffle,
             random_state
         )
 
-        self.__path_checking(
+        cls.__path_checking(
             annotation_path,
             image_path,
         )
 
-        self.__split_checking(train_size)
-        self.__stage_checking(stage)
+        cls.__split_checking(train_size)
+        cls.__stage_checking(stage)
 
     @staticmethod
     def __type_checking(annotation_path: str,
                         image_path: str,
-                        config_path: str,
                         train_size: float,
                         stage: str,
                         shuffle: bool,
@@ -55,7 +53,6 @@ class DatasetValidator:
 
         assert isinstance(image_path, str)
         assert isinstance(annotation_path, str)
-        assert isinstance(config_path, str)
         assert isinstance(train_size, float)
         assert isinstance(stage, str)
         assert isinstance(shuffle, bool)
@@ -69,6 +66,7 @@ class DatasetValidator:
     def __path_checking(annotation_path: str,
                         image_path: str,
                         ) -> None:
+
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
 
@@ -79,31 +77,22 @@ class DatasetValidator:
 
 class DatasetBuilder:
     def __init__(self,
-                 root_path: str,
-                 annotation_path: str,
-                 image_path: str,
                  config_path: str,
-                 train_size: float,
-                 stage: str,
-                 shuffle: bool,
-                 random_state: int
+                 root_path: str = None,
+                 *args, **kwargs
                  ):
 
-        super().__init__(
-            annotation_path, image_path,
-            config_path, train_size, stage,
-            shuffle, random_state
-        )
+        super().validate(*args, **kwargs)
 
         self.__root_dirpath = root_path if root_path else os.getcwd()
         self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
         self.__build_struct()
         self._config = self.load_config(config_path)
         self._head_config = self._config["head"]
-        self._classes_config = self._config["classes"]
+        self._classes_config = self._config["body"]
 
     def __build_struct(self) -> None:
-        if os.path.exists(self.__root_dir):
+        if os.path.exists(self.__root_dirpath):
             os.makedirs(self.__config_dirpath, exist_ok=True)
         else:
             raise ValueError("Could not find root directory!")
@@ -139,37 +128,6 @@ class DatasetBuilder:
             yaml.safe_dump(stream=f, data=data)
 
 
-class DatasetImage:
-    def __init__(self):
-        self.main_struct: dict = {
-            "head": {},
-            "body": {}
-        }
-
-        self.body_keys: tuple = (
-            "background", "blood_vessel",
-            "glomerulus", "unsure", "border"
-        )
-        self.body_values: dict = {
-            "apply": True,
-            "label": 0,
-            "rgb": (0, 0, 0),
-            "loss_weight": None
-        }
-
-        self.head = {
-            "instance": False,
-            "multiborder": False,
-            "thickness": 1
-        }
-
-    def generate_pattern(self) -> None:
-        self.main_struct["head"] = self.head
-        self.main_struct["body"] = {}.fromkeys(
-            self.body_keys, self.body_values
-        )
-
-
 class HuBMAPDataset(
     DatasetBuilder,
     DatasetValidator,
@@ -188,8 +146,8 @@ class HuBMAPDataset(
                  ):
 
         super().__init__(
-            root_path, annotation_path,
-            image_path, config_path,
+            config_path, root_path,
+            annotation_path, image_path,
             train_size, stage,
             shuffle, random_state
         )
@@ -215,9 +173,9 @@ class HuBMAPDataset(
         return image.transpose(2, 0, 1), target
 
     def __gate_transforms(self, image, target):
-        if isinstance(type(traget), list):
+        if type(target) == list:
             return self.__instance_transforms(image, target)
-        elif isinstance(type(traget), np.ndarray):
+        elif type(target) == np.ndarray:
             return self.__semantic_transforms(image, target)
         else:
             raise TypeError("Unsupported type!")
@@ -269,9 +227,9 @@ class HuBMAPDataset(
             vessel_type = vessel["type"]
             class_config = self._classes_config[vessel_type]
             is_apply = class_config["apply"]
-            label = class_config["label"]
 
             if is_apply:
+                label = class_config["label"]
                 coordinates = np.array(vessel["coordinates"])
                 mask = self.__get_mask(mask, label, coordinates)
 
