@@ -105,7 +105,7 @@ class AugmentDataset(HuBMAPDataset):
         }
 
 
-class AugmentScroll(AugmentDataset):
+class DisplayAugment(AugmentDataset):
     def __init__(self,
                  figsize: tuple,
                  facecolor: str,
