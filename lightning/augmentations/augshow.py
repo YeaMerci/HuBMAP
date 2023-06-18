@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from lightning.dataset import HuBMAPDataset
+from ..dataset import HuBMAPDataset
 
 
 class MaskDecoder:
@@ -11,7 +13,7 @@ class MaskDecoder:
         if mask.ndim == 2:
             mask = np.expand_dims(mask, axis=0)
 
-        elif mask.ndim != 3:
+        elif mask.shape[-1] != 1:
             raise ValueError(
                 f"Input matrix must have a shape of 1xHxW, "
                 f"but expected shape {mask.shape}"
@@ -77,7 +79,7 @@ class AugmentDataset(HuBMAPDataset):
         if instance:
             raise ValueError(
                 f"Instance must be False when using"
-                f" the DebugDataset, but got {instance}"
+                f" the AugmentDataset, but got {instance}"
             )
 
     def __get_colormap(self) -> dict:
@@ -96,9 +98,9 @@ class AugmentDataset(HuBMAPDataset):
         return transformed
 
     def __transforms(self, image: np.ndarray, mask: np.ndarray) -> dict:
-        mask_before = self.decoder(image, mask)
+        mask_before = self.decoder(mask)
         image_after, mask_after = self._semantic_transforms(image, mask)
-        mask_after = self.decoder(image_after, mask_after)
+        mask_after = self.decoder(mask_after)
         return {
             "before": (image, mask_before),
             "after": (image_after, mask_after)
@@ -107,8 +109,8 @@ class AugmentDataset(HuBMAPDataset):
 
 class DisplayAugment(AugmentDataset):
     def __init__(self,
-                 figsize: tuple,
-                 facecolor: str,
+                 figsize: tuple = (10, 10),
+                 facecolor: str = "#000000",
                  *args, **kwargs
                  ):
         super().__init__(*args, **kwargs)
@@ -146,6 +148,7 @@ class DisplayAugment(AugmentDataset):
                scrolls: int = 5,
                alpha: float = 0.5
                ) -> None:
+
         assert scrolls <= self.__len__()
         for idx in range(scrolls):
             transformed = self.__getitem__(idx)
