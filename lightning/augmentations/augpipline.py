@@ -1,6 +1,3 @@
-__all__ = ["AugmentPipelineModule"]
-
-
 import albumentations as A
 import albumentations.pytorch as pytorch
 import numpy as np
@@ -9,7 +6,7 @@ import cv2
 from colorama import Fore
 
 
-class AugmentPipelineModule:
+class AugmentPipeline:
     """
     This high-level API manages the transformation pipeline
     Includes dynamic adjustment of conversion parameters based on the size of the input image.
