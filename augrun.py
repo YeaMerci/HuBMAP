@@ -1,4 +1,4 @@
-from lightning import DisplayAugment
+from lightning import DisplayAugment, AugmentPipeline
 from argparse import ArgumentParser
 import albumentations as A
 from setup import SetupPipline
@@ -6,21 +6,23 @@ import os
 
 
 def main(scrolls: int = 10, alpha: float = 0.6):
-    transforms = A.Compose([
-        A.Resize(512, 512)
-    ])
+    transforms = AugmentPipeline(
+        spatial=True,
+        debug_mode=True,
+    )
 
     display = DisplayAugment(
         stage="train",
         root_path=os.environ["ROOT_DIRPATH"],
         annotation_path=os.environ["ANNOT_PATH"],
-        image_path=os.environ["IMAGE_PATH"],
-        config_path="sample_image.yaml",
+        image_path=os.environ["TARGET_PATH"],
+        config_path=os.environ["AUGRUN_IMAGE_FILENAME"],
         transforms=transforms,
         train_size=0.85,
         shuffle=True,
         random_state=42,
     )
+
     display.scroll(scrolls=scrolls, alpha=alpha)
 
 
