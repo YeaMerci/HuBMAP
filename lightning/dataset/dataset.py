@@ -1,3 +1,4 @@
+from ..lightbuilder import LightBuilder
 import torch
 from torch.utils.data import Dataset
 import albumentations as A
@@ -15,12 +16,13 @@ import json
 class DatasetValidator:
     @classmethod
     def validate(cls,
-                 annotation_path: str,
-                 image_path: str,
-                 train_size: float,
-                 stage: str,
-                 shuffle: bool,
-                 random_state: int
+                 stage,
+                 annotation_path,
+                 image_path,
+                 template_path,
+                 train_size,
+                 shuffle,
+                 random_state
                  ):
 
         cls.__type_checking(
@@ -35,6 +37,7 @@ class DatasetValidator:
         cls.__path_checking(
             annotation_path,
             image_path,
+            template_path
         )
 
         cls.__split_checking(train_size)
@@ -63,92 +66,44 @@ class DatasetValidator:
     @staticmethod
     def __path_checking(annotation_path: str,
                         image_path: str,
+                        template_path: str
                         ) -> None:
 
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
+        assert os.path.isfile(template_path)
 
     @staticmethod
     def __stage_checking(stage: str) -> None:
         assert stage in ["train", "val"]
 
 
-class DatasetBuilder:
-    def __init__(self,
-                 config_path: str,
-                 root_path: str = None,
-                 *args, **kwargs
-                 ):
-
-        super().validate(*args, **kwargs)
-
-        self.__root_dirpath = root_path if root_path else os.getcwd()
-        self.__config_dirpath = os.path.join(self.__root_dirpath, "config/dataset")
-        self.__build_struct()
-        self._config = self.load_config(config_path)
-        self._head_config = self._config["head"]
-        self._classes_config = self._config["body"]
-
-    def __build_struct(self) -> None:
-        if os.path.exists(self.__root_dirpath):
-            os.makedirs(self.__config_dirpath, exist_ok=True)
-        else:
-            raise ValueError("Could not find root directory!")
-
-    def load_config(self, filename: str) -> dict:
-        path = self.__get_path(filename)
-        with open(path, mode="r") as f:
-            data = yaml.load(stream=f, Loader=yaml.SafeLoader)
-        return data
-
-    def __get_path(self, filename: str) -> str:
-        if os.path.isfile(filename):
-            print("Warning! The configuration file "
-                  "is not located in the root directory "
-                  "and may not be secure.")
-            return filename
-
-        elif len(filename.split("/")) == 1:
-            return os.path.join(self.__config_dirpath, filename)
-
-        else:
-            raise ValueError(
-                f"Filename was expected to be a path"
-                f" or file name, but obtained: {filename}"
-            )
-
-    def get_configs(self) -> list[str, ...]:
-        return os.listdir(self.__config_dirpath)
-
-    def write_config(self, data: dict[dict, ...], filename: str) -> None:
-        path = self.__get_path(filename)
-        with open(path, mode="w") as f:
-            yaml.safe_dump(stream=f, data=data)
-
-
 class HuBMAPDataset(
-    DatasetBuilder,
     DatasetValidator,
+    LightBuilder,
     Dataset
 ):
     def __init__(self,
                  stage: str,
                  annotation_path: str,
                  image_path: str,
-                 config_path: str,
-                 root_path: str = None,
+                 template_path: str,
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
                  random_state: int = None
                  ):
 
-        super().__init__(
-            config_path, root_path,
-            annotation_path, image_path,
-            train_size, stage,
-            shuffle, random_state
+        super().validate(
+            stage, annotation_path,
+            image_path, template_path,
+            train_size, shuffle, random_state
         )
+
+        super().__init__(template_path)
+
+        self._head_config = self._config["head"]
+        self._classes_config = self._config["body"]
 
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
