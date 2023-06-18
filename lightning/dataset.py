@@ -1,5 +1,3 @@
-__all__ = ["HuBMAPDataset", "DebugDataset"]
-
 import torch
 from torch.utils.data import Dataset
 import albumentations as A
@@ -110,7 +108,7 @@ class DatasetBuilder:
                   "and may not be secure.")
             return filename
 
-        elif len(filename.split("/")) == 2:
+        elif len(filename.split("/")) == 1:
             return os.path.join(self.__config_dirpath, filename)
 
         else:
@@ -166,9 +164,9 @@ class HuBMAPDataset(
         return len(self.__identifiers)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        idx, identifier = self.__get_sample(idx)
-        image = self.__get_image(identifier)
-        target = self.__get_target(idx)
+        idx, identifier = self._get_sample(idx)
+        image = self._get_image(identifier)
+        target = self._get_target(idx)
         image, target = self.__gate_transforms(image, target)
         return image.transpose(2, 0, 1), target
 
@@ -187,12 +185,12 @@ class HuBMAPDataset(
             masks[index] = mask
         return image, masks
 
-    def __semantic_transforms(self, image, mask):
+    def _semantic_transforms(self, image, mask):
         transformed = self.transforms(image=image, mask=mask)
         image, mask = transformed["image"], transformed["mask"]
         return image, mask
 
-    def __get_sample(self, idx: int) -> tuple[int, str]:
+    def _get_sample(self, idx: int) -> tuple[int, str]:
         idx = self.__identifiers[idx]
         identifier = self.__samples[idx]["id"]
         return idx, identifier
@@ -212,12 +210,12 @@ class HuBMAPDataset(
         )
         return path
 
-    def __get_image(self, identifier: str) -> np.ndarray:
+    def _get_image(self, identifier: str) -> np.ndarray:
         image_path = self.__get_image_path(identifier)
         image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         return image
 
-    def __get_target(self, idx: int) -> np.ndarray:
+    def _get_target(self, idx: int) -> np.ndarray:
         annotations = self.__samples[idx]["annotations"]
         mask = np.zeros((512, 512), dtype=np.uint8)
         instance = self._head_config["instance"]
@@ -298,104 +296,3 @@ class HuBMAPDataset(
             "val": val_indices
         }
         return stage_indices[stage]
-
-
-class PostProcessing:
-    def __init__(self,):
-        self.__colormap = {
-            0: [0, 0, 0],
-            1: [255, 8, 8],
-            2: [8, 12, 255]
-        }
-
-    def __decode_mask(self, mask: np.ndarray) -> np.ndarray:
-        if mask.ndim == 2:
-            mask = np.expand_dims(mask, axis=0)
-
-        elif mask.ndim != 3:
-            raise ValueError(
-                f"Input matrix must have a shape of 1xHxW, "
-                f"but expected shape {mask.shape}"
-            )
-
-        mask = np.apply_along_axis(
-            func1d=lambda index: self.__colormap[int(index)],
-            axis=0,
-            arr=mask,
-        )
-        return mask.transpose(1, 2, 0)
-
-    @staticmethod
-    def __get_alpha_channel(mask: np.ndarray, alpha: float = 1) -> np.ndarray:
-        mask = np.where(mask != 0, round(255*alpha), 0)
-        return np.expand_dims(mask, axis=0)
-
-    @staticmethod
-    def __apply_alpha_channel(mask: np.ndarray, alpha_channel: np.ndarray) -> np.ndarray:
-        mask = mask.transpose(2, 0, 1)
-        red_channel, green_channel, blue_channel = np.array_split(mask, 3, axis=0)
-        return np.concatenate(
-            [red_channel,
-             green_channel,
-             blue_channel,
-             alpha_channel], axis=0
-        )
-
-    def __call__(self, mask: np.ndarray, alpha: float = 0.5) -> np.ndarray:
-        decoded = self.__decode_mask(mask)
-        alpha_channel = self.__get_alpha_channel(mask, alpha)
-        image = self.__apply_alpha_channel(decoded, alpha_channel)
-        return image.transpose(1, 2, 0)
-
-
-class DebugDataset(HuBMAPDataset):
-    def __init__(self, spins: int, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        assert spins > self.__len__() or spins < self.__len__()
-        self.__spins = spins
-
-    @staticmethod
-    def show(image,
-             mask,
-             original: bool = True,
-             alpha: float = 0.5,
-             timeout: int = 2
-             ) -> None:
-
-        description = "original" if original else "with mask"
-        winname = f"Image {description}"
-
-        print(
-            f"{Fore.CYAN}|| Image shape: {Fore.BLUE}"
-            f"{np.asarray(image).shape}{Fore.CYAN} ||"
-        )
-
-        print(
-            f"|| Mask shape: {Fore.BLUE}"
-            f"{np.asarray(mask).shape}{Fore.CYAN} ||"
-        )
-
-        if not original:
-            image = cv2.addWeighted(image, 1-alpha, mask, alpha, 0)
-        cv2.imshow(winname, image)
-        cv2.waitKey(timeout)
-
-    def roll_transformations(self,
-                             start_roll: int,
-                             end_roll: int,
-                             original: bool,
-                             timeout: int = 0,
-                             alpha: float = 0.5
-                             ) -> None:
-
-        for i in range(self.__len__()):
-            image, mask = self.__getitem__(i)
-            self.show(image, mask, original, alpha, timeout)
-        cv2.destroyAllWindows()
-
-        print(
-            f"\n{Fore.CYAN}|| {Fore.BLUE}Run-in complete!\n"
-            f"{Fore.CYAN}|| Rolled out images: {Fore.BLUE}{end_roll-start_roll}\n"
-            f"{Fore.CYAN}|| Scroll mode: {Fore.BLUE}{'original' if original else 'with mask'}\n"
-            f"{Fore.CYAN}|| Alpha channel: {Fore.BLUE}{alpha}{Fore.WHITE}"
-        )
