@@ -1,6 +1,4 @@
-__all__ = ["HuBMAPDataModule"]
-
-from . import HuBMAPDataset
+from ..dataset import HuBMAPDataset
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import albumentations as A
