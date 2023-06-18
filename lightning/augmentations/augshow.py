@@ -110,7 +110,7 @@ class AugmentDataset(HuBMAPDataset):
 class DisplayAugment(AugmentDataset):
     def __init__(self,
                  figsize: tuple = (10, 10),
-                 facecolor: str = "#000000",
+                 facecolor: str = "#101736",
                  *args, **kwargs
                  ):
         super().__init__(*args, **kwargs)
@@ -129,19 +129,26 @@ class DisplayAugment(AugmentDataset):
                  ) -> None:
 
         gs = self.__define_gridspec()
+        plt.suptitle("Augmentation control", fontsize=24, color="w")
         ax1 = plt.subplot(gs[0])
         ax2 = plt.subplot(gs[1])
 
+        # Ax 1
         image, mask = transformed["before"]
         ax1.imshow(image)
         ax1.imshow(mask, alpha=alpha)
+        ax1.set_title("Before augmentation", fontsize=16, color="w")
+        ax1.set_xticks(ticks=[])
+        ax1.set_yticks(ticks=[])
 
+        # Ax 2
         image, mask = transformed["after"]
         ax2.imshow(image)
         ax2.imshow(mask, alpha=alpha)
+        ax2.set_title("After augmentation", fontsize=16, color="w")
+        ax2.set_xticks(ticks=[])
+        ax2.set_yticks(ticks=[])
 
-        plt.xticks(ticks=[])
-        plt.yticks(ticks=[])
         plt.show()
 
     def scroll(self,
