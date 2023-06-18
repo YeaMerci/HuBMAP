@@ -20,7 +20,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        "--module", type=str,
+        "module", type=str,
         help="module - name module which config image will be used"
     )
 
