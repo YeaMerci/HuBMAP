@@ -8,11 +8,12 @@ from colorama import Fore
 
 class AugmentPipeline:
     def __init__(self,
-                 mean: list[float, float, float],
-                 std: list[float, float, float],
+                 mean: list[float, float, float] = None,
+                 std: list[float, float, float] = None,
                  height: int = 512,
                  width: int = 512,
-                 spatial: bool = False
+                 spatial: bool = False,
+                 debug_mode: bool = False
                  ):
 
         # Customization options
@@ -20,6 +21,7 @@ class AugmentPipeline:
         self.width = width
         self.mean = mean if mean else [0.485, 0.456, 0.406]
         self.std = std if std else [0.229, 0.224, 0.225]
+        self.debug_mode = debug_mode
 
         self._spatial = spatial
         self._base_transforms = None
@@ -79,26 +81,26 @@ class AugmentPipeline:
         Causes transformation pipeline modules to adapt.
         Verifies that modules participate in the pipeline.
         """
-        if self.__spatial:
+        if self._spatial:
             self.__define_spatial()
         self.__define_base()
 
     def __call__(self,
                  image: np.ndarray,
                  mask: np.ndarray,
-                 debug_mode: bool = False
                  ) -> dict[str, torch.Tensor]:
 
-        image, mask = self._resize(image, mask)
+        transformed = self._resize(image=image, mask=mask)
+        image, mask = transformed["image"], transformed["mask"]
 
         # Spatial transformation
         if self._spatial:
-            transformed = self._spatial(image, mask)
+            transformed = self._spatial(image=image, mask=mask)
             image, mask = transformed["image"], transformed["mask"]
 
         # Mandatory transformations for learning
-        if not debug_mode:
-            transformed = self._base_transforms(image, mask)
+        if not self.debug_mode:
+            transformed = self._base_transforms(image=image, mask=mask)
             image, mask = transformed["image"], transformed["mask"]
 
         return {"image": image,
