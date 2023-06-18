@@ -1,33 +1,29 @@
 import os
-from dsimage import ImageWriter
+from imagen import DatasetImage, DataModuleImage
 from argparse import ArgumentParser
 
 
-def main(dirpath: str, filename: str):
-    writer = ImageWriter(dirpath, filename)
+def main(module: str, template: dict):
+    writer = template[module]
     writer.generate_sample()
 
 
 if __name__ == '__main__':
+    template = {
+        "DataModuleImage": DataModuleImage(),
+        "DatasetImage": DatasetImage()
+    }
+
     parser = ArgumentParser(
-        description="Specify two arguments: "
-                    "1) dirpath - path to the directory in which the image file will be saved "
-                    "2) filename - image file name. Default value is sample_image.yaml"
+        description="Specify one argument:"
+                    "module - name module which config image will be used"
     )
 
     parser.add_argument(
-        "--dirpath", type=str,
-        help="dirpath - path to the directory in which the image file will be saved"
-    )
-
-    parser.add_argument(
-        "--filename", type=str,
-        help="filename - image file name. Default value is sample_image.yaml"
+        "--module", type=str,
+        help="module - name module which config image will be used"
     )
 
     args = parser.parse_args()
-    if args.dirpath and args.filename:
-        main(args.dirpath, args.filename)
-    else:
-        main(os.getcwd(), "sample_image.yaml")
-
+    module = args.module
+    main(module, template)
