@@ -1,3 +1,3 @@
 from .datamodule import *
 from .augmentations import *
-from .litghtmodule import *
+from lightning.lightmodule.litghtmodule import *
