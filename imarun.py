@@ -10,13 +10,13 @@ def main(module: str, template: dict):
 
 if __name__ == '__main__':
     template = {
-        "DataModuleImage": DataModuleImage(),
-        "DatasetImage": DatasetImage()
+        "datamodule": DataModuleImage(),
+        "dataset": DatasetImage()
     }
 
     parser = ArgumentParser(
         description="Specify one argument:"
-                    "module - name module which config image will be used"
+                    "module - name module which config image will be used: dataset/datamodule"
     )
 
     parser.add_argument(
