@@ -6,6 +6,7 @@ import random
 
 class SetupPipline:
     def __init__(self):
+        self.__augrun_path = "augrun_image.yaml"
         self.__root_dirpath = "/home/merci/PycharmProjects/competitions/HuBMAP/"
 
         self.__annot_path = os.path.join(
@@ -38,5 +39,6 @@ class SetupPipline:
 
     def set_variable(self):
         os.environ["ANNOT_PATH"] = self.__annot_path
-        os.environ["IMAGE_PATH"] = self.__image_path
+        os.environ["TARGET_PATH"] = self.__image_path
         os.environ["ROOT_DIRPATH"] = self.__root_dirpath
+        os.environ["AUGRUN_IMAGE_FILENAME"] = self.__augrun_path
