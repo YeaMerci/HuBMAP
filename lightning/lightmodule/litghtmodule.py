@@ -8,19 +8,19 @@ from typing import Any, Union
 
 class HuBMAPLightningModule(pl.LightningModule):
     def __init__(self,
+                 num_classes: int,
                  model: nn.Module,
-                 example_input_array: Union[list, tuple],
                  optim_dict: dict = None,
-                 lr: float = None,
-                 num_classes: int = 23):
+                 lr: float = None
+                 ):
+
         super().__init__()
         self.save_hyperparameters()
-        self.example_input_array = torch.zeros(size=example_input_array)
+        self.example_input_array = torch.zeros(size=[1, 3, 512, 512])
         self.num_classes = num_classes
         self.model = model
         self.criterion = nn.CrossEntropyLoss()
-        self.optim_dict = optim_dict
-        self._device = "cuda" if torch.cuda.is_available else "cpu"
+        self._device = "cuda"
 
         self.step_outputs = {
             "loss": [],
@@ -152,6 +152,4 @@ class HuBMAPLightningModule(pl.LightningModule):
             "interval": "epoch",
             "monitor": "val_loss"
         }
-
-        optimization_dictionary = {"optimizer": optimizer, "lr_scheduler": scheduler_dict}
-        return self.optim_dict if self.optim_dict else optimization_dictionary
+        return {"optimizer": optimizer, "lr_scheduler": scheduler_dict}
