@@ -6,7 +6,6 @@ import random
 
 class SetupPipline:
     def __init__(self):
-        self.__augrun_path = "augrun_image.yaml"
         self.__root_dirpath = "/home/merci/PycharmProjects/competitions/HuBMAP/"
 
         self.__annot_path = os.path.join(
@@ -14,9 +13,19 @@ class SetupPipline:
             "data/hubmap-hacking-the-human-vasculature/polygons.jsonl"
         )
 
-        self.__image_path = os.path.join(
+        self.__image_dirpath = os.path.join(
             self.__root_dirpath,
             "data/hubmap-hacking-the-human-vasculature/train"
+        )
+
+        self.__augrun_path = os.path.join(
+            self.__root_dirpath,
+            "config/dataset/augrun_image.yaml"
+        )
+
+        self.__dataset_image_path = os.path.join(
+            self.__root_dirpath,
+            "config/dataset/dataset_image.yaml"
         )
 
     @staticmethod
@@ -39,6 +48,7 @@ class SetupPipline:
 
     def set_variable(self):
         os.environ["ANNOT_PATH"] = self.__annot_path
-        os.environ["TARGET_PATH"] = self.__image_path
+        os.environ["DATA_PATH"] = self.__image_dirpath
         os.environ["ROOT_DIRPATH"] = self.__root_dirpath
-        os.environ["AUGRUN_IMAGE_FILENAME"] = self.__augrun_path
+        os.environ["AUGRUN_IMAGE_PATH"] = self.__augrun_path
+        os.environ["DATASET_IMAGE_PATH"] = self.__dataset_image_path

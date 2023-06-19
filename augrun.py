@@ -5,7 +5,7 @@ from setup import SetupPipline
 import os
 
 
-def main(scrolls: int = 10, alpha: float = 0.6):
+def main(scrolls: int = 5, alpha: float = 0.6):
     transforms = AugmentPipeline(
         spatial=True,
         debug_mode=True,
@@ -13,10 +13,9 @@ def main(scrolls: int = 10, alpha: float = 0.6):
 
     display = DisplayAugment(
         stage="train",
-        root_path=os.environ["ROOT_DIRPATH"],
         annotation_path=os.environ["ANNOT_PATH"],
         image_path=os.environ["TARGET_PATH"],
-        config_path=os.environ["AUGRUN_IMAGE_FILENAME"],
+        template_path=os.environ["AUGRUN_IMAGE_PATH"],
         transforms=transforms,
         train_size=0.85,
         shuffle=True,

@@ -1,9 +1,12 @@
 import os
 import yaml
+from ..imagewriter import ImageWriter
 
 
-class DatasetImage:
+class DatasetImage(ImageWriter):
     def __init__(self):
+        self._filename = "sample_dataset_image.yaml"
+
         self.main_struct: dict = {
             "head": {},
             "body": {}
@@ -33,25 +36,3 @@ class DatasetImage:
             self.body_keys, self.body_values
         )
         return stem
-
-
-class ImageWriter(DatasetImage):
-    def __init__(self,
-                 dirpath: str = None,
-                 filename: str = "sample_image.yaml"
-                 ):
-
-        super().__init__()
-        self.__filename = filename
-        self.__dirpath = dirpath if dirpath else os.getcwd()
-        self.__path = os.path.join(
-            self.__dirpath, self.__filename
-        )
-
-    def write_config(self, image: dict[dict, ...]) -> None:
-        with open(self.__path, mode="w") as f:
-            yaml.safe_dump(stream=f, data=image)
-
-    def generate_sample(self):
-        sample_image = self.generate_pattern()
-        self.write_config(sample_image)
