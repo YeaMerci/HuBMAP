@@ -5,6 +5,8 @@ import albumentations as A
 import torchvision.transforms as T
 import albumentations.pytorch as pytorch
 from typing import Union, Any
+import wandb
+from ..lightbuilder import LightBuilder
 
 
 class HuBMAPDataModule(pl.LightningDataModule):
@@ -20,6 +22,8 @@ class HuBMAPDataModule(pl.LightningDataModule):
                  ):
 
         super().__init__()
+        self.builder = LightBuilder(config_path)
+        self.config = self.get_config(train_size, batch_size, num_workers, random_state)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.target_path = target_path
@@ -44,6 +48,28 @@ class HuBMAPDataModule(pl.LightningDataModule):
         ])
 
         self.__data_source = "https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature/data"
+        self.__init_wandb()
+
+    def __init_wandb(self):
+        wandb.init(
+            project="HubMAP",
+            config=self.config
+        )
+
+    def get_config(self,
+                   train_size,
+                   batch_size,
+                   num_workers,
+                   random_state
+                   ):
+        config = self.builder._config
+        config.update({
+            "train_size": train_size,
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "random_state": random_state
+        })
+        return config
 
     def prepare_data(self):
         print(
