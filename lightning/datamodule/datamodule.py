@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import albumentations as A
 import torchvision.transforms as T
 import albumentations.pytorch as pytorch
-from typing import Union
+from typing import Union, Any
 
 
 class HuBMAPDataModule(pl.LightningDataModule):
@@ -12,8 +12,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
                  target_path: str,
                  data_path: str,
                  config_path: str,
-                 root_path: str,
-                 transform: Union[T.Compose, A.Compose],
+                 transform: Union[T.Compose, A.Compose, Any],
                  train_size: float = 0.85,
                  batch_size: int = 4,
                  num_workers: int = 4,
@@ -26,22 +25,19 @@ class HuBMAPDataModule(pl.LightningDataModule):
         self.target_path = target_path
         self.data_path = data_path
         self.config_path = config_path
-        self.root_path = root_path
         self.train_size = train_size
         self.random_state = random_state
 
         self.data_train = None
         self.data_val = None
-        self.data_test = None
-        self.data_predict = None
 
         self.mean = [0.485, 0.456, 0.406]
         self.std = [0.229, 0.224, 0.225]
 
         self.train_transform = transform
         self.eval_transform = A.Compose([
-            A.Resize(height=512,
-                     width=512),
+            A.Resize(height=transform.height,
+                     width=transform.width),
             A.Normalize(mean=self.mean,
                         std=self.std),
             pytorch.ToTensorV2()
@@ -58,31 +54,27 @@ class HuBMAPDataModule(pl.LightningDataModule):
         )
 
     def setup(self, stage: str = None) -> None:
-        if stage == "train":
-            self.data_train = HuBMAPDataset(
-                annotation_path=self.target_path,
-                image_path=self.data_path,
-                config_path=self.config_path,
-                transforms=self.train_transform,
-                stage=stage,
-                train_size=self.train_size,
-                root_path=self.root_path,
-                shuffle=True,
-                random_state=self.random_state
-                )
+        self.data_train = HuBMAPDataset(
+            annotation_path=self.target_path,
+            image_path=self.data_path,
+            template_path=self.config_path,
+            transforms=self.train_transform,
+            stage="train",
+            train_size=self.train_size,
+            shuffle=True,
+            random_state=self.random_state
+            )
 
-        if stage == "val":
-            self.data_val = HuBMAPDataset(
-                annotation_path=self.target_path,
-                image_path=self.data_path,
-                config_path=self.config_path,
-                transforms=self.eval_transform,
-                stage=stage,
-                train_size=self.train_size,
-                root_path=self.root_path,
-                shuffle=True,
-                random_state=self.random_state
-                )
+        self.data_val = HuBMAPDataset(
+            annotation_path=self.target_path,
+            image_path=self.data_path,
+            template_path=self.config_path,
+            transforms=self.eval_transform,
+            stage="val",
+            train_size=self.train_size,
+            shuffle=True,
+            random_state=self.random_state
+            )
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
