@@ -4,14 +4,14 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from torchmetrics import Accuracy, JaccardIndex, FBetaScore
 from typing import Any, Union
+import wandb
 
 
 class HuBMAPLightningModule(pl.LightningModule):
     def __init__(self,
                  num_classes: int,
                  model: nn.Module,
-                 optim_dict: dict = None,
-                 lr: float = None
+                 lr: float = None,
                  ):
 
         super().__init__()
@@ -105,6 +105,8 @@ class HuBMAPLightningModule(pl.LightningModule):
             f"{stage}_jaccard_index": jaccard_index,
             f"{stage}_fbeta_score": fbeta_score
         }
+
+        wandb.log(metrics)
         self.log_dict(metrics, prog_bar=True)
 
     def training_step(self, batch: Any, batch_idx: Any):
@@ -118,25 +120,6 @@ class HuBMAPLightningModule(pl.LightningModule):
 
     def on_validation_epoch_end(self) -> None:
         return self.shared_epoch_end(stage="val")
-
-    def test_step(self, batch: Any, batch_idx: Any):
-        return self.shared_step(batch=batch, stage="test")
-
-    def on_test_epoch_end(self) -> None:
-        return self.shared_epoch_end(stage="test")
-
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0):
-        x, y = batch
-
-        assert x.ndim == 4
-        assert x.max() <= 3 and x.min() >= -3
-        assert y.ndim == 3
-        assert y.max() <= 22 and y.min() >= 0
-
-        logites = self.forward(x)
-        activated = F.softmax(input=logites, dim=1)
-        predictions = torch.argmax(activated, dim=1)
-        return predictions
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
