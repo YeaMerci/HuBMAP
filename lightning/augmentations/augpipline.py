@@ -69,11 +69,11 @@ class AugmentPipeline:
         )
 
         self._base_transforms = A.Compose([
-            pytorch.ToTensorV2(),
             A.Normalize(
                 mean=self.mean,
                 std=self.std,
-            )
+            ),
+            pytorch.ToTensorV2()
         ])
 
     def __define_pipeline(self) -> None:
