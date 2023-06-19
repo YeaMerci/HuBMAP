@@ -35,15 +35,16 @@ class HuBMAPTrainer:
             target_path=os.environ["ANNOT_PATH"],
             data_path=os.environ["DATA_PATH"],
             config_path=os.environ["DATASET_IMAGE_PATH"],
-            batch_size=4,
-            num_workers=4,
+            batch_size=2,
+            num_workers=2,
             random_state=42
         )
 
     def __get_lightmodule(self):
         return HuBMAPLightningModule(
-            model=self.model, num_classes=self.num_classes,
-            lr=5e-3
+            model=self.model,
+            num_classes=self.num_classes,
+            lr=5e-2
         )
 
     @staticmethod
@@ -55,15 +56,15 @@ class HuBMAPTrainer:
 
     def __get_trainer(self):
         return pl.Trainer(
-            fast_dev_run=True,
+            fast_dev_run=False,
             accelerator="auto",
             strategy="auto",
             devices="auto",
             num_nodes=1,
             logger=self.logger,
             callbacks=self.callbacks,
-            max_epochs=150,
-            min_epochs=35
+            max_epochs=80,
+            min_epochs=15
         )
 
     def __get_loger(self):
