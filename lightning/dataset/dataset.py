@@ -91,7 +91,8 @@ class HuBMAPDataset(
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
-                 random_state: int = None
+                 random_state: int = None,
+                 *args, **kwargs
                  ):
 
         super().validate(
