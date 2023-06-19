@@ -1,7 +1,8 @@
+from setup import SetupPipline
 from lightning import HuBMAPTrainer
 import segmentation_models_pytorch as smp
 from typing import Any
-from setup import SetupPipline
+import torch
 
 
 def main(num_classes: int,
@@ -20,15 +21,16 @@ def main(num_classes: int,
 
 if __name__ == '__main__':
     SetupPipline().set_variable()
+    num_classes = 3
+    torch.set_float32_matmul_precision("medium")
 
     model = smp.UnetPlusPlus(
-        encoder_name="resnet34",
+        encoder_name="mobilenet_v2",
         encoder_depth=5,
         in_channels=3,
-        classes=4,
+        classes=num_classes,
         activation=None
     )
 
-    num_classes = 2
-    experiment = "test"
+    experiment = "UnetPlusPlus"
     main(num_classes, model, experiment)
