@@ -20,8 +20,8 @@ class HuBMAPLightningModule(pl.LightningModule):
         self.example_input_array = torch.zeros(size=[1, 3, 512, 512])
         self.num_classes = num_classes
         self.model = model
-        self.criterion = nn.CrossEntropyLoss()
         self._device = "cuda"
+        self.empty_target = 0
 
         self.step_outputs = {
             "loss": [],
@@ -61,6 +61,7 @@ class HuBMAPLightningModule(pl.LightningModule):
     def compute_loss(logites, y) -> torch.Tensor:
         if len(y.unique()) == 1:
             weights = None
+            self.empty_target += 1
         else:
             weights = compute_class_weight(
                 class_weight="balanced",
@@ -101,35 +102,43 @@ class HuBMAPLightningModule(pl.LightningModule):
         self.step_outputs["fbeta_score"].append(fbeta_score)
         return loss
 
-    def shared_epoch_end(self, stage: Any):
-        loss = torch.mean(torch.tensor([
-            loss for loss in self.step_outputs["loss"]
-        ]))
+    def compute_metrics(self, stage) -> dict:
+        loss = torch.mean(
+            torch.tensor([loss for loss in self.step_outputs["loss"]])
+        )
 
-        accuracy = torch.mean(torch.tensor([
-            accuracy for accuracy in self.step_outputs["accuracy"]
-        ]))
+        accuracy = torch.mean(
+            torch.tensor([accuracy for accuracy in self.step_outputs["accuracy"]])
+        )
 
-        jaccard_index = torch.mean(torch.tensor([
-            jaccard_index for jaccard_index in self.step_outputs["jaccard_index"]
-        ]))
+        jaccard_index = torch.mean(
+            torch.tensor([jaccard_index for jaccard_index in self.step_outputs["jaccard_index"]])
+        )
 
-        fbeta_score = torch.mean(torch.tensor(
-            [fbeta_score for fbeta_score in self.step_outputs["fbeta_score"]
-             ]))
+        fbeta_score = torch.mean(
+            torch.tensor([fbeta_score for fbeta_score in self.step_outputs["fbeta_score"]])
+        )
 
-        for key in self.step_outputs.keys():
-            self.step_outputs[key].clear()
-
-        metrics = {
+        return {
             f"{stage}_loss": loss,
             f"{stage}_accuracy": accuracy,
             f"{stage}_jaccard_index": jaccard_index,
-            f"{stage}_fbeta_score": fbeta_score
+            f"{stage}_fbeta_score": fbeta_score,
+            f"{stage}_empty_target": self.empty_target
         }
 
+    def empty_metrics(self) -> None:
+        for key in self.step_outputs.keys():
+            self.step_outputs[key].clear()
+
+    def log_everything(self, metrics) -> None:
         wandb.log(metrics)
         self.log_dict(metrics, prog_bar=True)
+
+    def shared_epoch_end(self, stage: Any):
+        metrics = self.compute_metrics(stage)
+        self.empty_metrics()
+        self.log_everything(metrics)
 
     def training_step(self, batch: Any, batch_idx: Any):
         return self.shared_step(batch=batch, stage="train")
