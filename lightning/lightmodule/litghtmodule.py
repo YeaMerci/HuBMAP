@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 from torchmetrics import Accuracy, JaccardIndex, FBetaScore
 from typing import Any, Union
 import wandb
+from sklearn.utils.class_weight import compute_class_weight
 
 
 class HuBMAPLightningModule(pl.LightningModule):
@@ -56,18 +57,39 @@ class HuBMAPLightningModule(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
 
-    def shared_step(self, batch, stage: str) -> torch.Tensor:
-        x, y = batch
+    @staticmethod
+    def compute_loss(logites, y) -> torch.Tensor:
+        if len(y.unique()) == 1:
+            weights = None
+        else:
+            weights = compute_class_weight(
+                class_weight="balanced",
+                classes=y.unique().cpu().numpy(),
+                y=y.flatten().cpu().numpy()
+            )
 
+        loss = F.cross_entropy(
+            input=logites,
+            target=y.to(torch.int64),
+            weight=weights
+        )
+        return loss
+
+    @staticmethod
+    def sanity_check(x: torch.Tensor, y: torch.Tensor) -> None:
         assert x.ndim == 4
         assert x.max() <= 3 and x.min() >= -3
         assert y.ndim == 3
         assert y.max() <= 22 and y.min() >= 0
 
+    def shared_step(self, batch, stage: str) -> torch.Tensor:
+        x, y = batch
+        self.sanity_check(x, y)
+
         logites = self.forward(x.to(torch.float32))
+        loss = self.compute_loss(logites, y)
         activated = F.softmax(input=logites, dim=1)
         predictions = torch.argmax(activated, dim=1)
-        loss = self.criterion(logites, y.to(torch.int64))
 
         accuracy = self.metrics["accuracy"](predictions, y)
         jaccard_index = self.metrics["jaccard_index"](predictions, y)
