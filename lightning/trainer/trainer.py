@@ -9,9 +9,12 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import TensorBoardLogger
 
+import torch
 import torch.nn as nn
-from typing import Any
+import wandb
+
 import os
+from typing import Any
 
 
 class HuBMAPTrainer(LightBuilder):
@@ -30,6 +33,7 @@ class HuBMAPTrainer(LightBuilder):
                  ):
         self.seed_all(seed)
         self.set_precision(precision)
+        self.empty()
 
         super().__init__(
             datamodule_config_path,
@@ -39,6 +43,7 @@ class HuBMAPTrainer(LightBuilder):
         )
 
         self.experiment = experiment
+        self.num_classes = num_classes
         self.model = model
 
         self.callbacks = self.__get_callbacks()
@@ -48,6 +53,11 @@ class HuBMAPTrainer(LightBuilder):
         self.datamodule = self.__get_datamodule()
         self.lightmodule = self.__get_lightmodule()
         self.trainer = self.__get_trainer()
+
+        wandb.watch(
+            models=model, log="all",
+            log_graph=True, log_freq=20
+        )
 
     def __get_datamodule(self):
         return HuBMAPDataModule(
@@ -61,8 +71,7 @@ class HuBMAPTrainer(LightBuilder):
             num_classes=self.num_classes,
         )
 
-    @staticmethod
-    def __get_transform():
+    def __get_transform(self):
         return AugmentPipeline(
             **self.configs.augmodule
         )
@@ -115,3 +124,7 @@ class HuBMAPTrainer(LightBuilder):
     @staticmethod
     def seed_all(seed: int) -> None:
         pl.seed_everything(seed)
+
+    @staticmethod
+    def empty():
+        torch.cuda.empty_cache()
