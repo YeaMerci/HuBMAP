@@ -63,8 +63,8 @@ class HuBMAPTrainer:
             num_nodes=1,
             logger=self.logger,
             callbacks=self.callbacks,
-            max_epochs=80,
-            min_epochs=15
+            max_epochs=3,
+            min_epochs=1
         )
 
     def __get_loger(self):

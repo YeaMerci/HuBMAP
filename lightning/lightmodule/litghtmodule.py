@@ -57,16 +57,22 @@ class HuBMAPLightningModule(pl.LightningModule):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
 
-    @staticmethod
-    def compute_loss(logites, y) -> torch.Tensor:
+    def compute_loss(self, logites, y) -> torch.Tensor:
         if len(y.unique()) == 1:
             weights = None
             self.empty_target += 1
+
         else:
             weights = compute_class_weight(
                 class_weight="balanced",
                 classes=y.unique().cpu().numpy(),
                 y=y.flatten().cpu().numpy()
+            )
+
+            weights = torch.tensor(
+                weights,
+                dtype=torch.float,
+                device=self._device
             )
 
         loss = F.cross_entropy(
@@ -95,7 +101,13 @@ class HuBMAPLightningModule(pl.LightningModule):
                 "jaccard_index": jaccard_index,
                 "fbeta_score": fbeta_score}
 
-    def update_metrics(self, *args, **kwargs) -> None:
+    def update_metrics(self,
+                       loss: torch.Tensor,
+                       accuracy: torch.Tensor,
+                       jaccard_index: torch.Tensor,
+                       fbeta_score: torch.Tensor
+                       ) -> None:
+
         self.step_outputs["loss"].append(loss)
         self.step_outputs["accuracy"].append(accuracy)
         self.step_outputs["jaccard_index"].append(jaccard_index)
