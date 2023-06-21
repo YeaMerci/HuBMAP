@@ -1,32 +1,31 @@
+from dataclasses import dataclass
 import os
 import torch
 import numpy as np
 import random
 
 
-class SetupPipline:
+@dataclass
+class ConfigPath:
+    # Project Paths
+    root_dirpath: str = "/home/merci/PycharmProjects/competitions/HuBMAP/"
+    annot_path: str = os.path.join(root_dirpath, "data/hubmap-hacking-the-human-vasculature/polygons.jsonl")
+    image_dirpath: str = os.path.join(root_dirpath, "data/hubmap-hacking-the-human-vasculature/train")
+
+    # Debug Configs
+    debug_dataset_config: str = os.path.join(root_dirpath, "config/debug/debug_dataset_image.yaml")
+    debug_augmodule_config: str = os.path.join(root_dirpath, "config/debug/debug_augmodule_image.yaml")
+
+    # Runs Configs
+    augmodule_config: str = os.path.join(root_dirpath, "config/runs/augmodule_image.yaml")
+    dataset_config: str = os.path.join(root_dirpath, "config/runs/dataset_image.yaml")
+    datamodule_config: str = os.path.join(root_dirpath, "config/runs/datamodule_image.yaml")
+    trainer_config: str = os.path.join(root_dirpath, "config/runs/trainer_image.yaml")
+
+
+class SetupPipline(ConfigPath):
     def __init__(self):
-        self.__root_dirpath = "/home/merci/PycharmProjects/competitions/HuBMAP/"
-
-        self.__annot_path = os.path.join(
-            self.__root_dirpath,
-            "data/hubmap-hacking-the-human-vasculature/polygons.jsonl"
-        )
-
-        self.__image_dirpath = os.path.join(
-            self.__root_dirpath,
-            "data/hubmap-hacking-the-human-vasculature/train"
-        )
-
-        self.__augrun_path = os.path.join(
-            self.__root_dirpath,
-            "config/dataset/augrun_image.yaml"
-        )
-
-        self.__dataset_image_path = os.path.join(
-            self.__root_dirpath,
-            "config/dataset/dataset_image.yaml"
-        )
+        super().__init__()
 
     @staticmethod
     def pycocotools_setup() -> None:
@@ -47,8 +46,17 @@ class SetupPipline:
         torch.backends.cudnn.deterministic = True
 
     def set_variable(self):
-        os.environ["ANNOT_PATH"] = self.__annot_path
-        os.environ["DATA_PATH"] = self.__image_dirpath
-        os.environ["ROOT_DIRPATH"] = self.__root_dirpath
-        os.environ["AUGRUN_IMAGE_PATH"] = self.__augrun_path
-        os.environ["DATASET_IMAGE_PATH"] = self.__dataset_image_path
+        # Project Paths
+        os.environ["ROOT_DIRPATH"] = self.root_dirpath
+        os.environ["ANNOT_PATH"] = self.annot_path
+        os.environ["DATA_PATH"] = self.image_dirpath
+
+        # Runs Configs
+        os.environ["DATASET_CONFIG"] = self.dataset_config
+        os.environ["DATAMODULE_CONFIG"] = self.datamodule_config
+        os.environ["AUGMODULE_CONFIG"] = self.augmodule_config
+        os.environ["TRAINER_CONFIG"] = self.trainer_config
+
+        # Debug Configs
+        os.environ["DEBUG_DATASET_CONFIG"] = self.debug_dataset_config
+        os.environ["DEBUG_AUGMODULE_CONFIG"] = self.debug_augmodule_config

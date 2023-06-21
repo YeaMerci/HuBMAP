@@ -1,0 +1,9 @@
+accelerator: auto
+devices: auto
+enable_model_summary: true
+enable_progress_bar: true
+fast_dev_run: true
+max_epochs: 5
+min_epochs: 1
+num_nodes: 1
+strategy: auto

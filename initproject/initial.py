@@ -11,7 +11,7 @@ class InitialProject:
                  models_dirname: str = "models",
                  data_dirname: str = "data",
                  ):
-        self.__config_struct = ("dataset", "datamodule", "lightmodule")
+        self.__config_struct = ("debug", "runs", "sample")
         self.root_dirpath = root_dirpath
         self.images_dirpath = images_dirpath
         self.annotations_path = annotations_path

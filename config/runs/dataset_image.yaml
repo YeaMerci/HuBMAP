@@ -1,0 +1,46 @@
+body:
+  background:
+    apply: true
+    label: 0
+    loss_weight: null
+    rgb:
+    - 0
+    - 0
+    - 0
+  blood_vessel:
+    apply: true
+    label: 1
+    loss_weight: null
+    rgb:
+    - 255
+    - 8
+    - 8
+  border:
+    apply: true
+    label: 2
+    loss_weight: 1.5
+    rgb:
+      - 255
+      - 0
+      - 242
+
+  glomerulus:
+    apply: false
+    label: 2
+    loss_weight: null
+    rgb:
+    - 8
+    - 12
+    - 255
+  unsure:
+    apply: false
+    label: 3
+    loss_weight: null
+    rgb:
+    - 8
+    - 255
+    - 20
+head:
+  instance: false
+  multiborder: false
+  thickness: 1

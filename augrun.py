@@ -3,23 +3,29 @@ from argparse import ArgumentParser
 import albumentations as A
 from setup import SetupPipline
 import os
+import yaml
+
+
+def load_config(path: str) -> dict:
+    with open(path, mode="r") as f:
+        data = yaml.load(stream=f, Loader=yaml.SafeLoader)
+    return data
 
 
 def main(scrolls: int = 5, alpha: float = 0.6):
     transforms = AugmentPipeline(
-        spatial=True,
-        debug_mode=True,
+        **load_config(os.environ["DEBUG_AUGMODULE_CONFIG"])
     )
 
     display = DisplayAugment(
-        stage="train",
-        annotation_path=os.environ["ANNOT_PATH"],
-        image_path=os.environ["TARGET_PATH"],
-        template_path=os.environ["AUGRUN_IMAGE_PATH"],
         transforms=transforms,
-        train_size=0.85,
-        shuffle=True,
+        config=load_config(os.environ["DEBUG_DATASET_CONFIG"]),
+        stage="train",
+        shuffle=False,
         random_state=42,
+        train_size=0.80,
+        annotation_path=os.environ["ANNOT_PATH"],
+        image_path=os.environ["DATA_PATH"]
     )
 
     display.scroll(scrolls=scrolls, alpha=alpha)
