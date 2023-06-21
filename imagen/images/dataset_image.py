@@ -1,5 +1,3 @@
-import os
-import yaml
 from ..imagewriter import ImageWriter
 
 
