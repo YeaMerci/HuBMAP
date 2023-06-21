@@ -83,6 +83,20 @@ class HuBMAPLightningModule(pl.LightningModule):
         assert y.ndim == 3
         assert y.max() <= 22 and y.min() >= 0
 
+    def compute_metrics(self, predictions, y) -> dict:
+        accuracy = self.metrics["accuracy"](predictions, y)
+        jaccard_index = self.metrics["jaccard_index"](predictions, y)
+        fbeta_score = self.metrics["fbeta_score"](predictions, y)
+        return {"accuracy": accuracy,
+                "jaccard_index": jaccard_index,
+                "fbeta_score": fbeta_score}
+
+    def update_metrics(self, *args, **kwargs) -> None:
+        self.step_outputs["loss"].append(loss)
+        self.step_outputs["accuracy"].append(accuracy)
+        self.step_outputs["jaccard_index"].append(jaccard_index)
+        self.step_outputs["fbeta_score"].append(fbeta_score)
+
     def shared_step(self, batch, stage: str) -> torch.Tensor:
         x, y = batch
         self.sanity_check(x, y)
@@ -92,17 +106,12 @@ class HuBMAPLightningModule(pl.LightningModule):
         activated = F.softmax(input=logites, dim=1)
         predictions = torch.argmax(activated, dim=1)
 
-        accuracy = self.metrics["accuracy"](predictions, y)
-        jaccard_index = self.metrics["jaccard_index"](predictions, y)
-        fbeta_score = self.metrics["fbeta_score"](predictions, y)
-
-        self.step_outputs["loss"].append(loss)
-        self.step_outputs["accuracy"].append(accuracy)
-        self.step_outputs["jaccard_index"].append(jaccard_index)
-        self.step_outputs["fbeta_score"].append(fbeta_score)
+        metrics = self.compute_metrics(predictions, y)
+        metrics.update({"loss": loss})
+        self.update_metrics(**metrics)
         return loss
 
-    def compute_metrics(self, stage) -> dict:
+    def epoch_end_metrics(self, stage) -> dict:
         loss = torch.mean(
             torch.tensor([loss for loss in self.step_outputs["loss"]])
         )
@@ -136,7 +145,7 @@ class HuBMAPLightningModule(pl.LightningModule):
         self.log_dict(metrics, prog_bar=True)
 
     def shared_epoch_end(self, stage: Any):
-        metrics = self.compute_metrics(stage)
+        metrics = self.epoch_end_metrics(stage)
         self.empty_metrics()
         self.log_everything(metrics)
 
