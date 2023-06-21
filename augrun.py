@@ -14,7 +14,7 @@ def main(scrolls: int = 5, alpha: float = 0.6):
     display = DisplayAugment(
         stage="train",
         annotation_path=os.environ["ANNOT_PATH"],
-        image_path=os.environ["TARGET_PATH"],
+        image_path=os.environ["DATA_PATH"],
         template_path=os.environ["AUGRUN_IMAGE_PATH"],
         transforms=transforms,
         train_size=0.85,
