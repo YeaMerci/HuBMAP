@@ -1,0 +1,7 @@
+batch_size: 4
+config_path: some/path/to/config.yaml
+data_path: some/path/to/images
+num_workers: 4
+random_state: 42
+target_path: some/path/to/annotations.jsonl
+train_size: 0.8

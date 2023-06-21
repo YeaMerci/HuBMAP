@@ -1,0 +1,17 @@
+body:
+  background: &id001
+    apply: true
+    label: 0
+    loss_weight: null
+    rgb:
+    - 0
+    - 0
+    - 0
+  blood_vessel: *id001
+  border: *id001
+  glomerulus: *id001
+  unsure: *id001
+head:
+  instance: false
+  multiborder: false
+  thickness: 1
