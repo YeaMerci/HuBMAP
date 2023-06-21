@@ -7,7 +7,6 @@ from dataclasses import dataclass
 @dataclass()
 class Configs:
     datamodule: dict
-    lightmodule: dict
     augmodule: dict
     trainer: dict
 
@@ -15,20 +14,54 @@ class Configs:
 class LightBuilder:
     def __init__(self,
                  datamodule_config_path: str,
-                 lightmodule_config_path: str,
                  augmentations_config_path: str,
-                 trainer_config_path: str
+                 trainer_config_path: str,
+                 job_type: str,
+                 project: str,
+                 tags: list
                  ):
-        self.__datamodule_config = self.__get_config(datamodule_config_path)
-        self.__lightmodule_config = self.__get_config(lightmodule_config_path)
+
+        self.__datamodule_config = self.__get_datamodule_config(datamodule_config_path)
         self.__augmentations_config = self.__get_config(augmentations_config_path)
         self.__trainer_config = self.__get_config(trainer_config_path)
+
         self.configs = self.__get_configs()
+        self.__init_wadnb(job_type, project, tags)
+
+    def __mix_configs(self) -> dict:
+        return {
+            **self.configs.datamodule,
+            **self.configs.trainer,
+            **self.configs.augmodule
+        }
+
+    def __init_wadnb(self,
+                     job_type: str,
+                     project: str,
+                     tags: list
+                     ) -> None:
+
+        config = self.__mix_configs()
+
+        wandb.init(
+            job_type=job_type,
+            dir="",
+            config=config,
+            project=project,
+            tags=tags
+        )
+
+    @staticmethod
+    def __get_datamodule_config(datamodule_config_path: str) -> dict:
+        datamodule_config = self.__get_config(datamodule_config_path)
+        dataset_config = self.__get_config(datamodule_config["config_path"])
+        datamodule_config.pop("config_path")
+        datamodule_config["config"] = dataset_config
+        return datamodule_config
 
     def __get_configs(self):
         return Configs(
             datamodule=self.__datamodule_config,
-            lightmodule=self.__lightmodule_config,
             augmodule=self.__augmentations_config,
             trainer=self.__trainer_config
         )
