@@ -54,7 +54,7 @@ class HuBMAPLightningModule(pl.LightningModule):
                                       validate_args=True).to(self._device)
         }
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
 
     @staticmethod
@@ -83,7 +83,11 @@ class HuBMAPLightningModule(pl.LightningModule):
         assert y.ndim == 3
         assert y.max() <= 22 and y.min() >= 0
 
-    def compute_metrics(self, predictions, y) -> dict:
+    def compute_metrics(self,
+                        predictions: torch.Tensor,
+                        y: torch.Tensor
+                        ) -> dict:
+
         accuracy = self.metrics["accuracy"](predictions, y)
         jaccard_index = self.metrics["jaccard_index"](predictions, y)
         fbeta_score = self.metrics["fbeta_score"](predictions, y)
@@ -97,7 +101,11 @@ class HuBMAPLightningModule(pl.LightningModule):
         self.step_outputs["jaccard_index"].append(jaccard_index)
         self.step_outputs["fbeta_score"].append(fbeta_score)
 
-    def shared_step(self, batch, stage: str) -> torch.Tensor:
+    def shared_step(self,
+                    batch: torch.Tensor,
+                    stage: str
+                    ) -> torch.Tensor:
+
         x, y = batch
         self.sanity_check(x, y)
 
@@ -111,7 +119,7 @@ class HuBMAPLightningModule(pl.LightningModule):
         self.update_metrics(**metrics)
         return loss
 
-    def epoch_end_metrics(self, stage) -> dict:
+    def epoch_end_metrics(self, stage: str) -> dict:
         loss = torch.mean(
             torch.tensor([loss for loss in self.step_outputs["loss"]])
         )
@@ -140,22 +148,31 @@ class HuBMAPLightningModule(pl.LightningModule):
         for key in self.step_outputs.keys():
             self.step_outputs[key].clear()
 
-    def log_everything(self, metrics) -> None:
+    def log_everything(self, metrics: dict) -> None:
         wandb.log(metrics)
         self.log_dict(metrics, prog_bar=True)
 
-    def shared_epoch_end(self, stage: Any):
+    def shared_epoch_end(self, stage: str) -> None:
         metrics = self.epoch_end_metrics(stage)
         self.empty_metrics()
         self.log_everything(metrics)
+        torch.cuda.empty_cache()
 
-    def training_step(self, batch: Any, batch_idx: Any):
+    def training_step(self,
+                      batch: torch.Tensor,
+                      batch_idx: int
+                      ) -> torch.Tensor:
+
         return self.shared_step(batch=batch, stage="train")
 
     def on_train_epoch_end(self) -> None:
         return self.shared_epoch_end(stage="train")
 
-    def validation_step(self, batch: Any, batch_idx: Any):
+    def validation_step(self,
+                        batch: torch.Tensor,
+                        batch_idx: int
+                        ) -> torch.Tensor:
+
         return self.shared_step(batch=batch, stage="val")
 
     def on_validation_epoch_end(self) -> None:
