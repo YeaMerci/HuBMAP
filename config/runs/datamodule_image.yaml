@@ -1,7 +1,7 @@
 batch_size: 4
-config_path: some/path/to/config.yaml
-data_path: some/path/to/images
-num_workers: 4
+config_path: /home/merci/PycharmProjects/competitions/HuBMAP/config/runs/dataset_image.yaml
+data_path: /home/merci/PycharmProjects/competitions/HuBMAP/data/hubmap-hacking-the-human-vasculature/train
+num_workers: 8
 random_state: 42
-target_path: some/path/to/annotations.jsonl
+target_path: /home/merci/PycharmProjects/competitions/HuBMAP/data/hubmap-hacking-the-human-vasculature/polygons.jsonl
 train_size: 0.8

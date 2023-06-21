@@ -2,8 +2,8 @@ accelerator: auto
 devices: auto
 enable_model_summary: true
 enable_progress_bar: true
-fast_dev_run: true
-max_epochs: 5
-min_epochs: 1
+fast_dev_run: false
+max_epochs: 115
+min_epochs: 15
 num_nodes: 1
 strategy: auto
