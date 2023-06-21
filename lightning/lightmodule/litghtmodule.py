@@ -12,7 +12,6 @@ class HuBMAPLightningModule(pl.LightningModule):
     def __init__(self,
                  num_classes: int,
                  model: nn.Module,
-                 lr: float = None,
                  ):
 
         super().__init__()
@@ -21,14 +20,8 @@ class HuBMAPLightningModule(pl.LightningModule):
         self.num_classes = num_classes
         self.model = model
         self._device = "cuda"
-        self.empty_target = 0
-
-        self.step_outputs = {
-            "loss": [],
-            "accuracy": [],
-            "jaccard_index": [],
-            "fbeta_score": []
-        }
+        self.empty_target = torch.tensor(0, dtype=torch.float32)
+        self.step_outputs = self.get_metrics_dict()
 
         self.metrics = {
             "accuracy": Accuracy(task="multiclass",
@@ -53,6 +46,18 @@ class HuBMAPLightningModule(pl.LightningModule):
                                       ignore_index=None,
                                       validate_args=True).to(self._device)
         }
+
+    @staticmethod
+    def get_metrics_dict():
+        return {}.fromkeys(
+            {"val", "train"},
+            {
+                "loss": [],
+                "accuracy": [],
+                "jaccard_index": [],
+                "fbeta_score": []
+            }
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
@@ -105,13 +110,14 @@ class HuBMAPLightningModule(pl.LightningModule):
                        loss: torch.Tensor,
                        accuracy: torch.Tensor,
                        jaccard_index: torch.Tensor,
-                       fbeta_score: torch.Tensor
+                       fbeta_score: torch.Tensor,
+                       stage: str
                        ) -> None:
 
-        self.step_outputs["loss"].append(loss)
-        self.step_outputs["accuracy"].append(accuracy)
-        self.step_outputs["jaccard_index"].append(jaccard_index)
-        self.step_outputs["fbeta_score"].append(fbeta_score)
+        self.step_outputs[stage]["loss"].append(loss)
+        self.step_outputs[stage]["accuracy"].append(accuracy)
+        self.step_outputs[stage]["jaccard_index"].append(jaccard_index)
+        self.step_outputs[stage]["fbeta_score"].append(fbeta_score)
 
     def shared_step(self,
                     batch: torch.Tensor,
@@ -128,25 +134,14 @@ class HuBMAPLightningModule(pl.LightningModule):
 
         metrics = self.compute_metrics(predictions, y)
         metrics.update({"loss": loss})
-        self.update_metrics(**metrics)
+        self.update_metrics(stage=stage, **metrics)
         return loss
 
     def epoch_end_metrics(self, stage: str) -> dict:
-        loss = torch.mean(
-            torch.tensor([loss for loss in self.step_outputs["loss"]])
-        )
-
-        accuracy = torch.mean(
-            torch.tensor([accuracy for accuracy in self.step_outputs["accuracy"]])
-        )
-
-        jaccard_index = torch.mean(
-            torch.tensor([jaccard_index for jaccard_index in self.step_outputs["jaccard_index"]])
-        )
-
-        fbeta_score = torch.mean(
-            torch.tensor([fbeta_score for fbeta_score in self.step_outputs["fbeta_score"]])
-        )
+        loss = torch.mean(torch.tensor(self.step_outputs[stage]["loss"]))
+        accuracy = torch.mean(torch.tensor(self.step_outputs[stage]["accuracy"]))
+        jaccard_index = torch.mean(torch.tensor(self.step_outputs[stage]["jaccard_index"]))
+        fbeta_score = torch.mean(torch.tensor([self.step_outputs[stage]["fbeta_score"]]))
 
         return {
             f"{stage}_loss": loss,
@@ -156,9 +151,9 @@ class HuBMAPLightningModule(pl.LightningModule):
             f"{stage}_empty_target": self.empty_target
         }
 
-    def empty_metrics(self) -> None:
-        for key in self.step_outputs.keys():
-            self.step_outputs[key].clear()
+    def empty_metrics(self, stage) -> None:
+        for key in self.step_outputs[stage].keys():
+            self.step_outputs[stage][key].clear()
 
     def log_everything(self, metrics: dict) -> None:
         wandb.log(metrics)
@@ -166,9 +161,8 @@ class HuBMAPLightningModule(pl.LightningModule):
 
     def shared_epoch_end(self, stage: str) -> None:
         metrics = self.epoch_end_metrics(stage)
-        self.empty_metrics()
+        self.empty_metrics(stage)
         self.log_everything(metrics)
-        torch.cuda.empty_cache()
 
     def training_step(self,
                       batch: torch.Tensor,
@@ -193,7 +187,7 @@ class HuBMAPLightningModule(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
             params=self.parameters(),
-            lr=self.hparams.lr
+            lr=25e-3,
         )
 
         scheduler_dict = {
