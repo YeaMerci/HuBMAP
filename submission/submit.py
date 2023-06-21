@@ -133,3 +133,19 @@ class Submission:
             self.submission = pd.DataFrame(self.__submission_dict)
             self.submission = self.submission.set_index('id')
             self.submission.to_csv("submission.csv")
+
+
+class SampleModel:
+    @staticmethod
+    def generate_masks(num_masks: int) -> list[dict, ...]:
+        masks = []
+        for _ in range(num_masks):
+            mask = torch.randint(0, 2, (1, 512, 512))
+            confidence = round(float(torch.rand(1)[0]), 2)
+            masks.append({"mask": mask, "confidence": confidence})
+        return masks
+
+    def __call__(self, image) -> list[dict, ...]:
+        num_masks = torch.randint(1, 5, (1, 1))
+        masks = self.generate_masks(num_masks)
+        return masks
