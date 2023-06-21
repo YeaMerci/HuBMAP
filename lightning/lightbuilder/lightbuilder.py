@@ -51,8 +51,7 @@ class LightBuilder:
             tags=tags
         )
 
-    @staticmethod
-    def __get_datamodule_config(datamodule_config_path: str) -> dict:
+    def __get_datamodule_config(self, datamodule_config_path: str) -> dict:
         datamodule_config = self.__get_config(datamodule_config_path)
         dataset_config = self.__get_config(datamodule_config["config_path"])
         datamodule_config.pop("config_path")
