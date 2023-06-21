@@ -1,6 +1,12 @@
-import os
-from imagen import DatasetImage, DataModuleImage
+from imagen import (
+    DatasetImage,
+    DataModuleImage,
+    TrainerImage,
+    AugModuleImage
+)
+
 from argparse import ArgumentParser
+import os
 
 
 def main(module: str, template: dict):
@@ -11,7 +17,9 @@ def main(module: str, template: dict):
 if __name__ == '__main__':
     template = {
         "datamodule": DataModuleImage(),
-        "dataset": DatasetImage()
+        "dataset": DatasetImage(),
+        "trainer": TrainerImage(),
+        "augmodule": AugModuleImage()
     }
 
     parser = ArgumentParser(
