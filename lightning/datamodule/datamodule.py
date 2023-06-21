@@ -5,15 +5,13 @@ import albumentations as A
 import torchvision.transforms as T
 import albumentations.pytorch as pytorch
 from typing import Union, Any
-import wandb
-from ..lightbuilder import LightBuilder
 
 
 class HuBMAPDataModule(pl.LightningDataModule):
     def __init__(self,
                  target_path: str,
                  data_path: str,
-                 config_path: str,
+                 config: dict,
                  transform: Union[T.Compose, A.Compose, Any],
                  train_size: float = 0.85,
                  batch_size: int = 4,
@@ -22,13 +20,11 @@ class HuBMAPDataModule(pl.LightningDataModule):
                  ):
 
         super().__init__()
-        self.builder = LightBuilder(config_path)
-        self.config = self.get_config(train_size, batch_size, num_workers, random_state)
+        self.config = config
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.target_path = target_path
         self.data_path = data_path
-        self.config_path = config_path
         self.train_size = train_size
         self.random_state = random_state
 
@@ -48,28 +44,6 @@ class HuBMAPDataModule(pl.LightningDataModule):
         ])
 
         self.__data_source = "https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature/data"
-        self.__init_wandb()
-
-    def __init_wandb(self):
-        wandb.init(
-            project="HubMAP",
-            config=self.config
-        )
-
-    def get_config(self,
-                   train_size,
-                   batch_size,
-                   num_workers,
-                   random_state
-                   ):
-        config = self.builder._config
-        config.update({
-            "train_size": train_size,
-            "batch_size": batch_size,
-            "num_workers": num_workers,
-            "random_state": random_state
-        })
-        return config
 
     def prepare_data(self):
         print(
@@ -83,7 +57,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
         self.data_train = HuBMAPDataset(
             annotation_path=self.target_path,
             image_path=self.data_path,
-            template_path=self.config_path,
+            config=self.config,
             transforms=self.train_transform,
             stage="train",
             train_size=self.train_size,
@@ -94,7 +68,7 @@ class HuBMAPDataModule(pl.LightningDataModule):
         self.data_val = HuBMAPDataset(
             annotation_path=self.target_path,
             image_path=self.data_path,
-            template_path=self.config_path,
+            config=self.config,
             transforms=self.eval_transform,
             stage="val",
             train_size=self.train_size,
