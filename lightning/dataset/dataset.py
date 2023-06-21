@@ -19,7 +19,6 @@ class DatasetValidator:
                  stage,
                  annotation_path,
                  image_path,
-                 template_path,
                  train_size,
                  shuffle,
                  random_state
@@ -34,12 +33,7 @@ class DatasetValidator:
             random_state
         )
 
-        cls.__path_checking(
-            annotation_path,
-            image_path,
-            template_path
-        )
-
+        cls.__path_checking(annotation_path, image_path)
         cls.__split_checking(train_size)
         cls.__stage_checking(stage)
 
@@ -66,12 +60,10 @@ class DatasetValidator:
     @staticmethod
     def __path_checking(annotation_path: str,
                         image_path: str,
-                        template_path: str
                         ) -> None:
 
         assert os.path.isdir(image_path)
         assert os.path.isfile(annotation_path)
-        assert os.path.isfile(template_path)
 
     @staticmethod
     def __stage_checking(stage: str) -> None:
@@ -80,14 +72,13 @@ class DatasetValidator:
 
 class HuBMAPDataset(
     DatasetValidator,
-    LightBuilder,
     Dataset
 ):
     def __init__(self,
                  stage: str,
                  annotation_path: str,
                  image_path: str,
-                 template_path: str,
+                 config: dict,
                  transforms: Any = None,
                  train_size: float = 0.85,
                  shuffle: bool = True,
@@ -97,14 +88,12 @@ class HuBMAPDataset(
 
         super().validate(
             stage, annotation_path,
-            image_path, template_path,
-            train_size, shuffle, random_state
+            image_path, train_size,
+            shuffle, random_state
         )
 
-        super().__init__(template_path)
-
-        self._head_config = self._config["head"]
-        self._classes_config = self._config["body"]
+        self._head_config = config["head"]
+        self._classes_config = config["body"]
 
         self.__image_path = image_path
         self.__samples = self.__parse_jsonl(annotation_path)
