@@ -193,3 +193,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+
+### Portfolio / tooling
+.playwright-mcp/
+.idea/
+.vscode/
+.DS_Store
+og-cover-tmp/
