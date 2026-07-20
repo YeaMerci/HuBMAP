@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HuBMAP · Hacking the Human Vasculature — Microvascular Instance Segmentation</title>
+<meta name="description" content="A config-driven PyTorch Lightning framework for microvascular instance segmentation in PAS-stained human kidney histology. Kaggle HuBMAP 2023 — an ML system-design case study." />
+
+<!-- Social / Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="HuBMAP — Hacking the Human Vasculature" />
+<meta property="og:description" content="Config-driven PyTorch Lightning framework for microvascular instance segmentation in human kidney histology. An ML system-design case study." />
+<meta property="og:url" content="https://yeamerci.github.io/HuBMAP/" />
+<meta property="og:image" content="https://yeamerci.github.io/HuBMAP/og-cover.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="HuBMAP — Hacking the Human Vasculature" />
+<meta name="twitter:description" content="Config-driven PyTorch Lightning framework for microvascular instance segmentation in human kidney histology." />
+<meta name="twitter:image" content="https://yeamerci.github.io/HuBMAP/og-cover.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<script>
+  MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+
+<style>
+  :root{
+    --bg:#080b11; --bg2:#0b1019; --panel:#0f1622; --panel2:#131c2b;
+    --ink:#e8eef6; --muted:#8595ad; --faint:#5a6a83;
+    --line:rgba(126,148,180,.14); --line2:rgba(126,148,180,.28);
+    --specimen:#ff2d3f; --specimen-soft:#ff6b76;
+    --teal:#2fe0cf; --teal-deep:#12a596;
+    --amber:#ffb000; --glom:#5a7dff;
+    --shadow:0 24px 60px -20px rgba(0,0,0,.75);
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Hanken Grotesk",sans-serif; font-size:17px; line-height:1.65;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden; position:relative;
+  }
+  /* reticle grid + vignette + grain */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+    background:
+      radial-gradient(1200px 700px at 78% -8%, rgba(47,224,207,.10), transparent 60%),
+      radial-gradient(1000px 800px at 8% 4%, rgba(255,45,63,.09), transparent 55%),
+      linear-gradient(180deg,#080b11 0%,#0a0f18 40%,#080b11 100%);
+  }
+  body::after{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:44px 44px;
+    -webkit-mask-image:radial-gradient(ellipse 120% 90% at 50% 0%,#000 30%,transparent 85%);
+            mask-image:radial-gradient(ellipse 120% 90% at 50% 0%,#000 30%,transparent 85%);
+  }
+  .grain{position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.035; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 26px; position:relative; z-index:1}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .tick{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--teal)}
+
+  /* ---- top status bar ---- */
+  .statusbar{position:sticky; top:0; z-index:40; backdrop-filter:blur(9px);
+    background:linear-gradient(180deg,rgba(8,11,17,.92),rgba(8,11,17,.6));
+    border-bottom:1px solid var(--line);}
+  .statusbar .row{display:flex; align-items:center; gap:16px; height:46px; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted)}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--teal); box-shadow:0 0 10px var(--teal); animation:pulse 2.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .statusbar .sep{color:var(--faint)}
+  .statusbar .right{margin-left:auto; display:flex; gap:18px}
+  .statusbar a{color:var(--muted); text-decoration:none}
+  .statusbar a:hover{color:var(--teal)}
+
+  /* ---- hero ---- */
+  header.hero{position:relative; padding:74px 0 44px}
+  .scan{position:absolute; left:0; right:0; top:0; height:2px; z-index:2;
+    background:linear-gradient(90deg,transparent,var(--teal),transparent); opacity:.5;
+    animation:scan 7s linear infinite}
+  @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(78vh)}}
+  .kicker{display:inline-flex; align-items:center; gap:10px; padding:7px 14px; border:1px solid var(--line2);
+    border-radius:100px; background:rgba(255,45,63,.06); color:var(--specimen-soft);
+    font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase}
+  h1{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(2.7rem,7vw,5.4rem); line-height:.98;
+    letter-spacing:-.02em; margin:24px 0 0}
+  h1 .blood{color:var(--specimen); font-style:italic; font-weight:500;
+    text-shadow:0 0 40px rgba(255,45,63,.35)}
+  .subtitle{font-family:"Fraunces",serif; font-size:clamp(1.05rem,2.3vw,1.5rem); color:var(--muted);
+    font-weight:400; max-width:760px; margin:22px 0 0; line-height:1.4}
+  .lede{max-width:640px; margin:22px 0 0; color:var(--muted)}
+
+  .cta{display:flex; gap:14px; flex-wrap:wrap; margin-top:34px}
+  .btn{display:inline-flex; align-items:center; gap:10px; padding:13px 22px; border-radius:10px;
+    font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.06em; text-decoration:none;
+    border:1px solid var(--line2); transition:.22s ease}
+  .btn.primary{background:var(--specimen); color:#fff; border-color:var(--specimen);
+    box-shadow:0 12px 30px -10px rgba(255,45,63,.6)}
+  .btn.primary:hover{transform:translateY(-2px); box-shadow:0 18px 40px -10px rgba(255,45,63,.7)}
+  .btn.ghost{color:var(--ink); background:rgba(255,255,255,.02)}
+  .btn.ghost:hover{border-color:var(--teal); color:var(--teal); transform:translateY(-2px)}
+
+  /* ---- instrument result card ---- */
+  .panel{border:1px solid var(--line2); border-radius:14px; background:
+      linear-gradient(180deg,var(--panel2),var(--panel)); box-shadow:var(--shadow); position:relative}
+  .panel .corner{position:absolute; width:10px; height:10px; border:1px solid var(--teal); opacity:.55}
+  .panel .corner.tl{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  .panel .corner.tr{top:-1px;right:-1px;border-left:0;border-bottom:0}
+  .panel .corner.bl{bottom:-1px;left:-1px;border-right:0;border-top:0}
+  .panel .corner.br{bottom:-1px;right:-1px;border-left:0;border-top:0}
+
+  .readout{margin-top:44px; display:grid; grid-template-columns:repeat(6,1fr); gap:0; overflow:hidden}
+  .cell{padding:20px 18px; border-right:1px solid var(--line)}
+  .cell:last-child{border-right:0}
+  .cell .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .cell .val{font-family:"Fraunces",serif; font-size:1.5rem; font-weight:600; margin-top:8px; line-height:1.05}
+  .cell .val.sm{font-size:1.05rem}
+  .cell .val .u{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--muted)}
+
+  /* ---- sections ---- */
+  section{padding:66px 0; border-top:1px solid var(--line); position:relative}
+  .sec-no{font-family:"IBM Plex Mono",monospace; color:var(--specimen); font-size:12px; letter-spacing:.2em}
+  h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(1.8rem,4vw,2.9rem); letter-spacing:-.015em; margin:12px 0 0; line-height:1.05}
+  h2 + p.intro{color:var(--muted); max-width:720px; margin-top:16px}
+  h3{font-family:"Hanken Grotesk",sans-serif; font-weight:700; font-size:1.05rem; margin:0 0 6px; color:var(--ink)}
+  p + p{margin-top:14px}
+  a.inline{color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(47,224,207,.3)}
+  a.inline:hover{border-color:var(--teal)}
+  strong{color:#fff; font-weight:600}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:30px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:30px}
+  .card{padding:24px; border-radius:12px}
+  .card .tick{margin-bottom:12px; display:block}
+
+  /* specimen viewer frames */
+  .specimen{position:relative; border:1px solid var(--line2); border-radius:12px; overflow:hidden; background:#05070b}
+  .specimen img{display:block; width:100%; height:auto; filter:saturate(1.05)}
+  .specimen figcaption{padding:12px 16px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); border-top:1px solid var(--line); background:var(--panel)}
+  .specimen .badge{position:absolute; top:10px; left:10px; z-index:2; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; padding:5px 9px; border-radius:5px; background:rgba(8,11,17,.75); border:1px solid var(--line2); color:var(--teal)}
+
+  /* dataset table */
+  table{width:100%; border-collapse:collapse; margin-top:26px; font-size:15px}
+  th,td{text-align:left; padding:13px 14px; border-bottom:1px solid var(--line)}
+  th{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--teal); font-weight:500}
+  td.k{font-weight:600; color:#fff}
+  tr:hover td{background:rgba(47,224,207,.03)}
+  .pill{display:inline-block; padding:2px 9px; border-radius:100px; font-family:"IBM Plex Mono",monospace; font-size:11px; border:1px solid var(--line2)}
+  .pill.red{color:var(--specimen-soft); border-color:rgba(255,45,63,.4); background:rgba(255,45,63,.07)}
+  .pill.blue{color:var(--glom); border-color:rgba(90,125,255,.4); background:rgba(90,125,255,.07)}
+  .pill.gray{color:var(--muted)}
+
+  /* mermaid */
+  .diagram{margin-top:30px; padding:26px; overflow:auto}
+  .mermaid{opacity:0; transition:opacity .5s ease}
+  .mermaid.ready{opacity:1}
+
+  /* formula block */
+  .formula{padding:22px 26px; margin-top:18px; border-left:2px solid var(--specimen); background:rgba(255,45,63,.04); border-radius:0 10px 10px 0; overflow-x:auto}
+  .formula .cap{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--teal); letter-spacing:.08em; margin-bottom:6px}
+
+  .note{padding:20px 22px; border-radius:10px; border:1px solid rgba(255,176,0,.3); background:rgba(255,176,0,.05); margin-top:26px}
+  .note .tick{color:var(--amber)}
+
+  /* methodology list */
+  .method{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:28px}
+  .method .row{padding:18px 20px; border:1px solid var(--line); border-radius:11px; background:rgba(255,255,255,.012)}
+  .method .row b{color:var(--teal); font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; display:block; margin-bottom:6px}
+
+  footer{padding:56px 0 70px; border-top:1px solid var(--line); text-align:center; color:var(--faint)}
+  footer .mono{font-size:12px}
+
+  /* reveal */
+  .reveal{opacity:0; transform:translateY(22px); transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1; transform:none}
+  .d1{transition-delay:.06s}.d2{transition-delay:.14s}.d3{transition-delay:.22s}.d4{transition-delay:.3s}
+  .no-js .reveal{opacity:1; transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.scan{animation:none}.dot{animation:none}}
+
+  @media(max-width:860px){
+    .readout{grid-template-columns:repeat(3,1fr)}
+    .cell:nth-child(3){border-right:0}
+    .grid2,.method{grid-template-columns:1fr}
+    .grid3{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="statusbar">
+  <div class="wrap"><div class="row">
+    <span class="dot"></span><span>DIAGNOSTIC&nbsp;CONSOLE</span>
+    <span class="sep">/</span><span>HuBMAP · VASCULATURE</span>
+    <span class="sep">/</span><span style="color:var(--teal)">STATUS: DOCUMENTED</span>
+    <span class="right">
+      <a href="#pipeline">pipeline</a>
+      <a href="#dataset">dataset</a>
+      <a href="#results">results</a>
+      <a href="https://github.com/YeaMerci/HuBMAP" target="_blank" rel="noopener">repo ↗</a>
+    </span>
+  </div></div>
+</div>
+
+<header class="hero">
+  <div class="scan"></div>
+  <div class="wrap">
+    <span class="kicker reveal in">🩸 Kaggle · HuBMAP 2023 · Instance Segmentation</span>
+    <h1 class="reveal in d1">Hacking the<br/>Human <span class="blood">Vasculature</span></h1>
+    <p class="subtitle reveal in d2">A config-driven PyTorch Lightning framework for microvascular instance segmentation in PAS-stained human kidney histology.</p>
+    <p class="lede reveal in d3">An engineering-first case study in <strong>ML system design</strong> — polygon-to-mask modelling, reproducible augmentation, class-balanced training, and competition-format submission encoding. Documented honestly: no fabricated scores.</p>
+    <div class="cta reveal in d4">
+      <a class="btn primary" href="https://github.com/YeaMerci/HuBMAP" target="_blank" rel="noopener">◈ View the Repository</a>
+      <a class="btn ghost" href="#pipeline">↳ Explore the Pipeline</a>
+    </div>
+
+    <div class="panel readout reveal in d4">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="cell"><div class="lab">Host</div><div class="val sm">HuBMAP<br/><span class="u">NIH · IU</span></div></div>
+      <div class="cell"><div class="lab">Task</div><div class="val sm">Instance<br/>Segmentation</div></div>
+      <div class="cell"><div class="lab">Metric</div><div class="val">AP <span class="u">@ IoU 0.6</span></div></div>
+      <div class="cell"><div class="lab">Prize Pool</div><div class="val">$50K</div></div>
+      <div class="cell"><div class="lab">Teams</div><div class="val">1,021</div></div>
+      <div class="cell"><div class="lab">Modality</div><div class="val sm">PAS<br/><span class="u">Kidney WSI</span></div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ABSTRACT -->
+<section id="abstract">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">01 / ABSTRACT</span>
+    <h2>Mapping the body's addressing system</h2></div>
+    <div class="grid2">
+      <div class="reveal d1">
+        <p>The function of human organs depends on the spatial organization of ~37 trillion cells. To map them, the <strong>Vasculature Common Coordinate Framework (VCCF)</strong> uses blood vasculature — down to individual capillaries — as a coordinate system. Gaps in our knowledge of <strong>microvasculature</strong> become gaps in the VCCF.</p>
+        <p>HuBMAP 2023 asked participants to automatically segment microvascular structures (blood vessels) in Periodic acid-Schiff stained whole-slide images of healthy human kidney — a step toward a <strong>Human Reference Atlas</strong>.</p>
+      </div>
+      <div class="reveal d2">
+        <p>This repository is a <strong>from-scratch, configuration-driven training framework</strong> for that task. It rasterizes polygonal annotations into semantic or instance masks, applies a reproducible Albumentations pipeline, trains a <span class="mono" style="color:var(--teal)">UNet++ / MobileNetV2</span> network under PyTorch Lightning with class-balanced cross-entropy, and encodes predictions in the competition's COCO-RLE → zlib → base64 format.</p>
+        <p>The goal is a maintainable, template-generated ML system — not a one-off notebook.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLINICAL -->
+<section id="clinical">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">02 / CLINICAL CONTEXT</span>
+    <h2>Why microvessels matter</h2>
+    <p class="intro">Reliable, automated delineation of vessels from stained tissue turns raw slide data into structured, machine-readable vascular maps — a prerequisite for studying how cell-to-cell relationships affect health.</p></div>
+    <div class="grid2" style="align-items:start">
+      <figure class="specimen reveal d1">
+        <span class="badge">specimen · overlay</span>
+        <img src="./assets/figures/sample_tile_overlay.png" alt="Kidney tile with blood-vessel mask overlay" />
+        <figcaption>512×512 PAS-stained kidney tile with its blood-vessel mask overlaid — rendered by this project's notebooks.</figcaption>
+      </figure>
+      <div class="reveal d2">
+        <div class="card panel" style="margin-bottom:16px"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <span class="tick">renal architecture</span>
+          <p style="margin:0">Kidney tissue contains <strong>glomeruli</strong> (capillary balls that begin the nephron) and dense networks of <strong>peritubular capillaries</strong> and <strong>vasa recta</strong>. The target class is <span class="pill red">blood_vessel</span>; <span class="pill blue">glomerulus</span> regions are excluded (overlaps count as false positives) and ambiguous structures are marked <span class="pill gray">unsure</span>.</p>
+        </div>
+        <div class="card panel"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <span class="tick">the objective</span>
+          <p style="margin:0">Segment instances of microvascular structures so researchers can fill the microvasculature gaps in the VCCF and, ultimately, the Human Reference Atlas.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATASET -->
+<section id="dataset">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">03 / DATASET</span>
+    <h2>14 slides, three regimes</h2>
+    <p class="intro">Tiles extracted from 14 Whole-Slide Images, organized into three datasets of decreasing annotation quality. No competition data or model weights are committed to this repository.</p></div>
+
+    <table class="reveal d1">
+      <thead><tr><th>Dataset</th><th>WSIs</th><th>Annotations</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Dataset 1</td><td>subset of 5</td><td>Expert-reviewed polygons</td><td>Primary signal · all test tiles originate here</td></tr>
+        <tr><td class="k">Dataset 2</td><td>same 5</td><td>Sparse, not expert-reviewed</td><td>Extra / noisy supervision</td></tr>
+        <tr><td class="k">Dataset 3</td><td>+9 more</td><td>Unannotated</td><td>Semi- / self-supervised opportunities</td></tr>
+      </tbody>
+    </table>
+
+    <div class="grid3" style="margin-top:22px">
+      <div class="card panel reveal d1"><span class="corner tl"></span><span class="corner br"></span><div class="lab tick">total tiles</div><div style="font-family:Fraunces;font-size:2rem;font-weight:600;margin-top:8px">7,033</div><p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">tile_meta.csv</p></div>
+      <div class="card panel reveal d2"><span class="corner tl"></span><span class="corner br"></span><div class="lab tick">annotated</div><div style="font-family:Fraunces;font-size:2rem;font-weight:600;margin-top:8px">1,633</div><p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">polygons.jsonl</p></div>
+      <div class="card panel reveal d3"><span class="corner tl"></span><span class="corner br"></span><div class="lab tick">tile size</div><div style="font-family:Fraunces;font-size:2rem;font-weight:600;margin-top:8px">512²</div><p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">TIFF · ~650 in test</p></div>
+    </div>
+
+    <div class="grid2" style="margin-top:22px">
+      <figure class="specimen reveal d1">
+        <span class="badge">eda · distribution</span>
+        <img src="./assets/figures/dataset_distribution.png" alt="Tile count per dataset" />
+        <figcaption>Tiles per dataset.</figcaption>
+      </figure>
+      <figure class="specimen reveal d2">
+        <span class="badge">eda · donors</span>
+        <img src="./assets/figures/donor_demographics.png" alt="Donor sex and race distribution" />
+        <figcaption>Donor sex / race across annotated WSIs — aggregate statistics only.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- METRIC -->
+<section id="metric">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">04 / EVALUATION</span>
+    <h2>Average Precision at IoU ≥ 0.6</h2>
+    <p class="intro">Scored exactly as the OpenImages Instance Segmentation Challenge, but with a single class. A predicted mask matches ground truth when their Intersection-over-Union crosses a <strong>single</strong> threshold of 0.6 — not a COCO-style average over thresholds.</p></div>
+    <div class="formula reveal d1">
+      <div class="cap">// mask overlap and average precision</div>
+      $$ \mathrm{IoU}(A,B)=\frac{\lvert A\cap B\rvert}{\lvert A\cup B\rvert}, \qquad \mathrm{AP}=\sum_{n}\left(R_n-R_{n-1}\right)P_n $$
+    </div>
+    <p class="reveal d2" style="color:var(--muted);margin-top:16px">Predictions are ranked by descending confidence; a true positive matches an unclaimed ground-truth vessel at $\mathrm{IoU}\ge 0.6$, while predictions inside <span class="pill blue">glomerulus</span> regions are false positives.</p>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">05 / SYSTEM DESIGN</span>
+    <h2>Template → config → build</h2>
+    <p class="intro">Nothing is hard-coded. Dataset semantics, augmentation and trainer behaviour are declared in YAML that is generated from Python "image" templates, wired through environment variables, then loaded and merged by a builder at runtime.</p></div>
+    <div class="panel diagram reveal d1">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <pre class="mermaid">
+flowchart LR
+    A["polygons.jsonl<br/>+ 512x512 tiles"] --> B["HuBMAPDataset<br/>parse + rasterize"]
+    B --> C["cv2.fillPoly<br/>+ optional borders"]
+    C --> D["AugmentPipeline<br/>Albumentations"]
+    D --> E["HuBMAPDataModule<br/>80/20 split"]
+    E --> F["HuBMAPLightningModule<br/>UNet++ / MobileNetV2"]
+    F --> G["Class-balanced<br/>Cross-Entropy"]
+    F --> H["torchmetrics<br/>IoU · F1 · Acc"]
+    G --> I["HuBMAPTrainer<br/>callbacks + logging"]
+    H --> I
+    I --> J["Submission<br/>argmax masks"]
+    J --> K["COCO-RLE<br/>zlib · base64"]
+    K --> L["submission.csv"]
+      </pre>
+    </div>
+  </div>
+</section>
+
+<!-- METHODOLOGY -->
+<section id="methodology">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">06 / METHODOLOGY</span>
+    <h2>Inside the pipeline</h2></div>
+    <div class="method">
+      <div class="row reveal d1"><b>Mask rasterization</b>A config head switches between a single semantic mask and per-vessel instance masks. An optional <span class="mono">border</span> class (via <span class="mono">cv2.polylines</span>) helps separate touching vessels.</div>
+      <div class="row reveal d2"><b>Augmentation</b>Resize 512 → H/V flip → Affine ±15° → Perspective → ImageNet Normalize → ToTensorV2. Spatial transforms and debug preview are config-toggled.</div>
+      <div class="row reveal d1"><b>Model</b><span class="mono" style="color:var(--teal)">smp.UnetPlusPlus</span> with a MobileNetV2 encoder (depth 5), 3 classes: background / blood_vessel / border.</div>
+      <div class="row reveal d2"><b>Loss</b>Cross-Entropy with per-batch <span class="mono">balanced</span> class weights from scikit-learn — for the heavy background-vs-vessel imbalance.</div>
+      <div class="row reveal d1"><b>Optimization</b>Adam + ReduceLROnPlateau (patience 5, monitors val_loss). Checkpoints top-5, EarlyStopping, TF32 matmul, seeded.</div>
+      <div class="row reveal d2"><b>Tracking</b>Weights &amp; Biases (<span class="mono">wandb.watch</span>) plus TensorBoard, logging IoU / F1 / accuracy each epoch.</div>
+    </div>
+    <div class="formula reveal d1" style="margin-top:30px">
+      <div class="cap">// class-balanced cross-entropy · used in HuBMAPLightningModule</div>
+      $$ w_c=\frac{N}{C\cdot n_c}, \qquad \mathcal{L}_{\mathrm{CE}}=-\frac{1}{N}\sum_{i=1}^{N} w_{y_i}\,\log\frac{e^{z_{i,y_i}}}{\sum_{c=1}^{C}e^{z_{i,c}}} $$
+    </div>
+    <div class="formula reveal d2">
+      <div class="cap">// segmentation overlap metrics · Jaccard / Dice</div>
+      $$ \mathrm{IoU}=\frac{\lvert A\cap B\rvert}{\lvert A\cup B\rvert}, \qquad F_1=\mathrm{Dice}=\frac{2\lvert A\cap B\rvert}{\lvert A\rvert+\lvert B\rvert} $$
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="wrap">
+    <div class="reveal"><span class="sec-no">07 / RESULTS &amp; CONCLUSIONS</span>
+    <h2>What the pipeline measures</h2></div>
+    <div class="note reveal d1">
+      <span class="tick">honest scope</span>
+      <p style="margin-top:8px">No leaderboard submission or trained checkpoint is recorded in this repository — the submission path uses a placeholder <span class="mono">SampleModel</span> that emits random masks. <strong>No CV / OOF / public / private LB score is reported</strong>, because reporting one would be fabrication. The winning solutions used detection frameworks (RTMDet, YOLOv8-seg, Mask R-CNN / HTC via MMDetection &amp; Detectron2); this repository is a documented semantic-segmentation baseline framework.</p>
+    </div>
+    <div class="grid2" style="margin-top:26px">
+      <div class="card panel reveal d1"><span class="corner tl"></span><span class="corner br"></span>
+        <span class="tick">instrumented signals</span>
+        <p style="margin-top:8px">Logged per epoch: class-balanced <strong>CE loss</strong>, <strong>IoU</strong> (Jaccard, macro), <strong>F1</strong> (FBeta β=1, micro), <strong>accuracy</strong> (micro), and an empty-target counter.</p>
+      </div>
+      <div class="card panel reveal d2"><span class="corner tl"></span><span class="corner br"></span>
+        <span class="tick">design conclusions</span>
+        <p style="margin-top:8px">The template-driven config system is the strongest part of the design. The metric — <strong>AP@IoU 0.6</strong> — rewards well-separated instances, which favours detection heads over a 3-class semantic mask: the key lesson this case study documents.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a class="btn primary" href="https://github.com/YeaMerci/HuBMAP" target="_blank" rel="noopener" style="margin-bottom:26px">◈ Open the Repository on GitHub</a>
+    <p class="mono">HuBMAP · Hacking the Human Vasculature — ML system-design case study</p>
+    <p class="mono" style="margin-top:8px;color:var(--faint)">No patient data or competition files are redistributed · Figures are the project's own notebook renders</p>
+  </div>
+</footer>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad:false,
+    theme:'base',
+    themeVariables:{
+      background:'#0f1622',
+      primaryColor:'#131c2b', primaryTextColor:'#e8eef6', primaryBorderColor:'#2fe0cf',
+      lineColor:'#5a6a83', secondaryColor:'#1a2333', tertiaryColor:'#0b1019',
+      fontFamily:'IBM Plex Mono, monospace', fontSize:'14px',
+      clusterBkg:'#0b1019', clusterBorder:'#2a3548'
+    },
+    flowchart:{ curve:'basis', nodeSpacing:44, rankSpacing:56, htmlLabels:true }
+  });
+  const nodes = document.querySelectorAll('.mermaid');
+  await mermaid.run({ nodes });
+  nodes.forEach(n=>n.classList.add('ready'));
+
+  // scroll reveal (with no-support fallback: reveal everything)
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+    },{ threshold:.12, rootMargin:'0px 0px -8% 0px' });
+    document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
+  } else {
+    document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+  }
+</script>
+</body>
+</html>
