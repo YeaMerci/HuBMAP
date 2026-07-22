@@ -16,6 +16,7 @@
 ![Task](https://img.shields.io/badge/Task-Instance%20Segmentation-6E44FF?style=flat-square)
 ![Domain](https://img.shields.io/badge/Domain-Digital%20Pathology-E4002B?style=flat-square)
 ![Metric](https://img.shields.io/badge/Metric-AP%20@%20IoU%200.6-2CA02C?style=flat-square)
+![Best score](https://img.shields.io/badge/Best%20Public%20AP-0.3317-2CA02C?style=flat-square)
 ![Prize](https://img.shields.io/badge/Prize%20Pool-%2450%2C000-FFB000?style=flat-square)
 ![Teams](https://img.shields.io/badge/Teams-1%2C021-777?style=flat-square)
 
@@ -30,7 +31,9 @@
 > [!NOTE]
 > **What this repository is.** An engineering‑first, configuration‑driven training framework built from scratch for the Kaggle *HuBMAP — Hacking the Human Vasculature* (2023) competition. The emphasis of this case study is **ML system design**: a clean, modular, YAML‑configurable PyTorch Lightning pipeline covering data modelling, polygon→mask rasterization, augmentation, training, experiment tracking, and competition‑format submission encoding.
 >
-> **On results.** This repository does not ship a trained model or a recorded leaderboard score — the submission path currently uses a placeholder `SampleModel`. Every metric, formula, and dataset fact below is traceable to the notebooks, the pipeline code, or the [official competition pages](https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature). Nothing is invented to look impressive. The *Results* section reports the metrics the pipeline **instruments**, not scores it claims.
+> **Two tracks.** This repo holds **(1)** an engineering‑first, config‑driven Lightning framework (UNet++ / MobileNetV2) and **(2)** the [competition notebooks](notebooks/) where the actual modelling and scoring happened — two model families (**Mask R‑CNN** and **YOLOv8x‑seg**) taken all the way to graded submissions.
+>
+> **On results.** The best **selected public score was AP @ IoU 0.6 = 0.3317**. Every number in this README traces to a primary artifact: the official Kaggle submission export, the saved training runs (`results.csv`), the notebooks' own executed outputs, or the [official competition pages](https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature). Nothing is invented to look impressive; where a notebook's own internal metric is unreliable, that is stated explicitly. See **[Results & Experiments](#-results--experiments)**.
 
 ---
 
@@ -45,7 +48,8 @@
 - [Class Architecture](#-class-architecture)
 - [Methodology Deep‑Dive](#-methodology-deep-dive)
 - [Domain Formulas](#-domain-formulas)
-- [Results & Conclusions](#-results--conclusions)
+- [Notebooks & Experiments](#-notebooks--experiments)
+- [Results & Experiments](#-results--experiments)
 - [Repository Structure](#-repository-structure)
 - [Reproduce](#-reproduce)
 - [References](#-references)
@@ -57,6 +61,8 @@
 The proper functioning of human organs depends on the spatial organization of ~37 trillion cells. Mapping them requires a navigation system, and the **Vasculature Common Coordinate Framework (VCCF)** uses the body's blood vasculature — down to individual capillaries — as that coordinate system. Gaps in our knowledge of **microvasculature** therefore translate directly into gaps in the VCCF. The HuBMAP 2023 competition asked participants to **automatically segment microvascular structures (blood vessels)** in Periodic acid‑Schiff (PAS) stained whole‑slide images of healthy human kidney.
 
 This repository implements a **from‑scratch, config‑driven training framework** for that task. It rasterizes polygonal annotations into semantic (or instance) masks, applies a reproducible Albumentations pipeline, trains a `segmentation-models-pytorch` **UNet++ / MobileNetV2** network under **PyTorch Lightning** with class‑balanced cross‑entropy, tracks IoU / F1 / accuracy via `torchmetrics`, and encodes predictions in the competition's **COCO‑RLE → zlib → base64** submission format. The design goal is a maintainable, template‑generated, environment‑variable‑wired ML system — not a one‑off notebook.
+
+Alongside the framework, the competition itself was worked in a set of **[curated notebooks](notebooks/)** spanning two model families — **Mask R‑CNN** (torchvision ResNet50‑FPN) and **YOLOv8x‑seg** — from EDA and data engineering through training sweeps to offline submission. Best **public score: AP @ IoU 0.6 = 0.3317**; locally, YOLOv8x‑seg reached **Mask mAP@50 = 0.690** on the scored `blood_vessel` class. The [Results & Experiments](#-results--experiments) section reports these with full provenance — including an honest analysis of the local‑vs‑leaderboard generalization gap.
 
 ---
 
@@ -325,12 +331,124 @@ $$
 
 ---
 
-## 📊 Results & Conclusions
+## 🧪 Notebooks & Experiments
+
+The competition was worked in two parallel tracks: the **Lightning framework** in this repo
+(UNet++ / MobileNetV2, semantic), and a set of **[Kaggle notebooks](notebooks/)** that iterated
+faster with off‑the‑shelf detection/instance models. Seven curated notebooks cover the arc — EDA,
+data engineering, two model families, and offline submission. Full per‑notebook write‑ups with
+exact numbers live in **[`notebooks/README.md`](notebooks/README.md)**.
+
+| # | Notebook | What it contributes |
+|---|----------|---------------------|
+| 01 | EDA & submission pipeline | dataset facts (7,033 tiles / 1,633 annotated) + COCO‑RLE encoder |
+| 02 | Dataset → YOLO‑seg format | `polygons.jsonl` → YOLO labels, 1,306 / 327 split |
+| 03 | Offline tools setup | internet‑banned install of `ultralytics` + `pycocotools` |
+| 04 | Mask R‑CNN (torchvision) | ResNet50‑FPN, 10 epochs, val loss 1.185 → 0.946 |
+| 05 | Mask R‑CNN from scratch | hand‑built loop; a documented **negative result** (LR‑schedule bug) |
+| 06 | YOLOv8x‑seg | strongest line — Mask mAP@50 = 0.597; `blood_vessel` = 0.690 |
+| 07 | YOLO inference & submission | offline `best.pt` → `submission.csv` |
+
+---
+
+## 📊 Results & Experiments
 
 > [!NOTE]
-> No leaderboard submission or trained checkpoint is recorded in this repository, so **no CV / OOF / public / private LB score is reported here** — reporting one would be fabrication. What follows is what the pipeline **measures**, and the conclusions from building it.
+> All figures below trace to primary artifacts: the official **Kaggle submission export**
+> (`Competition-Submissions.csv`), the saved Ultralytics **`results.csv`** training logs, and the
+> notebooks' own executed cell outputs. The hidden‑test leaderboard score is **AP at a single
+> IoU = 0.6, single class** (`blood_vessel`). Local YOLO metrics are Ultralytics **Mask mAP@50 /
+> mAP@50‑95** on an 80/20 split — a *different, more forgiving* measurement than the LB, which is
+> exactly the point of the generalization analysis below.
 
-**Metrics the pipeline instruments** (logged per epoch to W&B / TensorBoard):
+### Public leaderboard timeline (real)
+
+Reconstructed from the submission export; approach is attributed by date‑proximity to each
+notebook's publication (the export records scores + timestamps, not notebook names).
+
+| Date (2023) | Public AP @ 0.6 | Selected | Most likely source |
+|---|---|---|---|
+| 06‑25 | 0.168 → 0.209 | | early Mask R‑CNN drafts |
+| **06‑26 16:15** | **0.3317** | ✅ **best** | **Mask R‑CNN (torchvision)** |
+| 06‑26 20:23 | 0.2737 | ✅ | YOLOv8x‑seg |
+| 06‑26 → 27 | 0.246 – 0.256 | | YOLO / Mask R‑CNN tuning |
+| 07‑07 | 0.2737 | | YOLO submission notebook |
+
+**Best selected: AP @ 0.6 = 0.3317.** The peak came from the Mask R‑CNN line; the YOLO line
+plateaued on the LB around **0.27** despite stronger *local* validation — see the gap analysis.
+
+### YOLOv8x‑seg hyperparameter sweep (local, from `results.csv`)
+
+Four `yolov8x-seg` runs were saved (plus three earlier `yolov8n-seg` runs). Best epoch per run:
+
+| Run | Optimizer | lr0 | close_mosaic | Best Mask mAP@50 | mAP@50‑95 | Epoch |
+|---|---|---|---|---|---|---|
+| 3 | SGD | 0.015 | 0 | 0.579 | 0.397 | 18 |
+| 4 | **Adam** | 0.005 | 0 | 0.454 | 0.238 | 31 |
+| 5 | SGD | 0.010 | 10 | 0.600 | 0.407 | 15 (← submitted `best.pt`) |
+| 6 | SGD | 0.010 | 10 | **0.602** | **0.422** | 19 |
+
+**What the sweep shows:** **SGD clearly beat Adam** (0.60 vs 0.45 Mask mAP@50 at the same scale);
+turning mosaic off for the final epochs (`close_mosaic=10`) gave the best two runs; `yolov8x` ≫
+`yolov8n`; and early stopping fired at epochs ~15–25 even with 100–200‑epoch budgets — fast
+convergence, then plateau.
+
+### YOLOv8x‑seg per‑class validation (20‑epoch documented run)
+
+| Class | Val instances | Mask mAP@50 | Mask mAP@50‑95 |
+|---|---|---|---|
+| **blood_vessel** (scored) | 2,955 | **0.690** | 0.338 |
+| glomerulus | 104 | 0.921 | 0.794 |
+| unsure | 177 | 0.180 | 0.103 |
+| **all** | 3,236 | 0.597 | 0.412 |
+
+<div align="center">
+  <img src="docs/assets/figures/yolov8_training_curves.png" alt="YOLOv8x-seg training curves" width="82%"/>
+  <br/><em>YOLOv8x‑seg training/validation curves (losses ↓, Box/Mask precision·recall·mAP ↑).</em>
+  <br/><br/>
+  <img src="docs/assets/figures/yolov8_mask_pr_curve.png" alt="YOLOv8x-seg mask precision-recall curve" width="62%"/>
+  <br/><em>Mask precision–recall by class (saved sweep run 6): <code>blood_vessel</code> 0.674, <code>glomerulus</code> 0.917, <code>unsure</code> 0.216, all‑classes mAP@50 0.602 — the target class carries the useful signal, <code>unsure</code> is near‑noise.</em>
+</div>
+
+### Mask R‑CNN (torchvision, 10 epochs)
+
+Stable convergence — **train loss 1.319 → 0.924, val loss 1.185 → 0.946**, best at epoch 10
+(~90 min). The notebook's *internal* mAP scorer is **not trustworthy**: its IoU sweep is
+`np.arange(0.6, 6.5, 0.05)` (upper bound 6.5 instead of ~0.95), averaging in dozens of impossible
+thresholds and collapsing the number toward zero. The trustworthy signal here is the loss curve and
+the resulting **0.3317** public score, not that internal metric. The hand‑built *from‑scratch*
+variant (notebook 05) **plateaued** (val `loss_mask` ≈ 0.53, early‑stopped at epoch 8) — traced to
+`StepLR.step()` being called per‑batch, which zeroes the LR within one epoch. A clean, documented
+negative result.
+
+### The generalization gap (the central lesson)
+
+Local YOLO `blood_vessel` Mask mAP@50 was **0.690**, but the hidden‑test LB was **~0.27**. The
+biggest driver is traceable in the data code: **the train/val split is an unshuffled index slice
+that does not group by WSI**, so tiles from the same slide land on both sides — validation leaks
+tissue‑ and stain‑level signal and overstates generalization. HuBMAP's Dataset 1/2/3 tiers and the
+held‑out **private‑test WSI** (the "missing" WSI #5) make this domain shift the dominant risk. A
+**group‑aware (per‑WSI) split** is the first fix any next iteration should make.
+
+### What worked / what didn't
+
+**Worked**
+- **YOLOv8x‑seg + SGD + `close_mosaic`** — the best, most stable line (0.60 Mask mAP@50 locally).
+- **Transfer learning** from COCO weights for both families; Mask R‑CNN converged smoothly in 10 epochs.
+- **Offline submission plumbing** — building `pycocotools`/`ultralytics` from attached datasets for internet‑banned kernels; the **COCO‑RLE → zlib → base64** encoder verified end‑to‑end before any real model.
+
+**Didn't**
+- **Adam** underperformed SGD by a wide margin on this task.
+- **Mask R‑CNN from scratch** plateaued on a per‑batch LR‑schedule bug.
+- The **`unsure` class is near‑noise** (Mask mAP@50 = 0.180) and dilutes multi‑class training even though it is excluded from the metric.
+- **Local ≫ LB** because the split ignores WSI boundaries — the single biggest thing to fix.
+- Runs stopped early with epoch budget left (`patience` fired) — **headroom untapped**.
+
+### Framework track — metrics it instruments
+
+The Lightning framework logs these per epoch to W&B / TensorBoard. (Its UNet++/MobileNetV2 head was
+trained too — a referenced checkpoint tag reads `epoch=2_val_loss=0.20_val_accuracy=0.96`; note
+that **pixel accuracy is inflated by background dominance** and is not the competition metric.)
 
 | Signal | Implementation | Averaging |
 |---|---|---|
@@ -340,12 +458,11 @@ $$
 | Accuracy | `torchmetrics.Accuracy` | micro |
 | Empty‑target count | custom counter | per epoch |
 
-**Conclusions from the build:**
+**Conclusions from the build**
 
 - A **template‑driven config system** (`imagen` → YAML → env vars → `LightBuilder`) makes experiments declarative and diff‑friendly — the strongest part of this design.
-- **Polygon→mask with an optional border class** is a pragmatic way to approach an instance‑segmentation problem with a semantic‑segmentation network, at the cost of a true instance metric.
-- **Per‑batch balanced weighting** is a defensible default for the extreme background/vessel imbalance, though a **Dice/Tversky or focal** loss (and a detection‑based head) would be the natural next step to close the gap to top solutions.
-- The metric mismatch matters: **AP@IoU 0.6 rewards well‑separated instances**, which favours detection frameworks over a 3‑class semantic mask — a key lesson this case study documents honestly.
+- The metric mismatch matters: **AP @ IoU 0.6 rewards well‑separated instances**, which favours the detection/instance frameworks (Mask R‑CNN, YOLOv8) over a 3‑class semantic mask — borne out by the scores above.
+- The next‑iteration shortlist writes itself from the evidence: **group‑aware per‑WSI split**, **drop `unsure`**, **train YOLOv8x longer** (patience never let it finish), and a **Dice/Tversky or focal** objective for the semantic head.
 
 ---
 
@@ -377,9 +494,15 @@ HuBMAP/
 ├── submission/
 │   └── submit.py               # EncodeBinaryMask, Submission, SampleModel
 ├── initproject/                # InitialProject scaffolder
-└── notebooks/
-    ├── hubmap-eda-pycocotools-dataset.ipynb
-    └── hubmap-hacking-the-human-vasculature.ipynb
+└── notebooks/                  # Curated Kaggle notebooks (see notebooks/README.md)
+    ├── README.md                # Per-notebook write-ups with exact, traceable numbers
+    ├── 01-eda-and-submission-pipeline.ipynb
+    ├── 02-dataset-to-yolo-seg-format.ipynb
+    ├── 03-offline-tools-setup.ipynb
+    ├── 04-mask-rcnn-torchvision.ipynb
+    ├── 05-mask-rcnn-from-scratch-pipeline.ipynb
+    ├── 06-yolov8-instance-segmentation.ipynb
+    └── 07-yolo-inference-and-submission.ipynb
 ```
 
 ---

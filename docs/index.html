@@ -380,20 +380,43 @@ flowchart LR
 <!-- RESULTS -->
 <section id="results">
   <div class="wrap">
-    <div class="reveal"><span class="sec-no">07 / RESULTS &amp; CONCLUSIONS</span>
-    <h2>What the pipeline measures</h2></div>
+    <div class="reveal"><span class="sec-no">07 / RESULTS &amp; EXPERIMENTS</span>
+    <h2>Two model families, graded on the board</h2></div>
     <div class="note reveal d1">
-      <span class="tick">honest scope</span>
-      <p style="margin-top:8px">No leaderboard submission or trained checkpoint is recorded in this repository — the submission path uses a placeholder <span class="mono">SampleModel</span> that emits random masks. <strong>No CV / OOF / public / private LB score is reported</strong>, because reporting one would be fabrication. The winning solutions used detection frameworks (RTMDet, YOLOv8-seg, Mask R-CNN / HTC via MMDetection &amp; Detectron2); this repository is a documented semantic-segmentation baseline framework.</p>
+      <span class="tick">full provenance</span>
+      <p style="margin-top:8px">Every number here traces to a primary artifact — the official Kaggle <span class="mono">submission export</span>, the saved Ultralytics <span class="mono">results.csv</span> logs, or the notebooks' own executed outputs. The leaderboard metric is <strong>AP at a single IoU = 0.6</strong>, single class. Local YOLO numbers are <strong>Mask mAP@50 / 50-95</strong> on an 80/20 split — a more forgiving measurement, which is the whole point of the generalization analysis below.</p>
     </div>
+
+    <div class="grid3" style="margin-top:26px">
+      <div class="card panel reveal d1"><span class="corner tl"></span><span class="corner br"></span><div class="lab tick">best public AP @ 0.6</div><div style="font-family:Fraunces;font-size:2rem;font-weight:600;margin-top:8px" class="blood">0.3317</div><p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">selected · Mask R-CNN line</p></div>
+      <div class="card panel reveal d2"><span class="corner tl"></span><span class="corner br"></span><div class="lab tick">YOLOv8x local · vessel</div><div style="font-family:Fraunces;font-size:2rem;font-weight:600;margin-top:8px">0.690</div><p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">Mask mAP@50 · blood_vessel</p></div>
+      <div class="card panel reveal d3"><span class="corner tl"></span><span class="corner br"></span><div class="lab tick">graded submissions</div><div style="font-family:Fraunces;font-size:2rem;font-weight:600;margin-top:8px">11</div><p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">06-20 → 07-07 · 2 selected</p></div>
+    </div>
+
+    <table class="reveal d1" style="margin-top:24px">
+      <thead><tr><th>Submission (2023)</th><th>Public AP @ 0.6</th><th>Selected</th><th>Most likely source</th></tr></thead>
+      <tbody>
+        <tr><td class="k">06-25</td><td>0.168 → 0.209</td><td>—</td><td>early Mask R-CNN drafts</td></tr>
+        <tr><td class="k">06-26 16:15</td><td><strong>0.3317</strong></td><td>✅ best</td><td>Mask R-CNN (torchvision)</td></tr>
+        <tr><td class="k">06-26 20:23</td><td>0.2737</td><td>✅</td><td>YOLOv8x-seg</td></tr>
+        <tr><td class="k">07-07</td><td>0.2737</td><td>—</td><td>YOLO submission notebook</td></tr>
+      </tbody>
+    </table>
+
+    <figure class="specimen reveal d1" style="margin-top:24px">
+      <span class="badge">yolov8x-seg · training run</span>
+      <img src="./assets/figures/yolov8_training_curves.png" alt="YOLOv8x-seg training and validation curves" />
+      <figcaption>YOLOv8x-seg over 20 epochs — losses fall, Box/Mask precision·recall·mAP climb. Best Mask mAP@50 = 0.597 (all classes), 0.690 on the scored blood_vessel class.</figcaption>
+    </figure>
+
     <div class="grid2" style="margin-top:26px">
       <div class="card panel reveal d1"><span class="corner tl"></span><span class="corner br"></span>
-        <span class="tick">instrumented signals</span>
-        <p style="margin-top:8px">Logged per epoch: class-balanced <strong>CE loss</strong>, <strong>IoU</strong> (Jaccard, macro), <strong>F1</strong> (FBeta β=1, micro), <strong>accuracy</strong> (micro), and an empty-target counter.</p>
+        <span class="tick">what worked</span>
+        <p style="margin-top:8px"><strong>YOLOv8x-seg + SGD + close_mosaic</strong> was the best, most stable line (0.60 Mask mAP@50 locally); <strong>SGD beat Adam</strong> 0.60 vs 0.45. COCO transfer learning converged Mask R-CNN in 10 epochs (val loss 1.19 → 0.95). The <strong>offline submission plumbing</strong> — building pycocotools/ultralytics from attached datasets, COCO-RLE → zlib → base64 — was verified end-to-end.</p>
       </div>
       <div class="card panel reveal d2"><span class="corner tl"></span><span class="corner br"></span>
-        <span class="tick">design conclusions</span>
-        <p style="margin-top:8px">The template-driven config system is the strongest part of the design. The metric — <strong>AP@IoU 0.6</strong> — rewards well-separated instances, which favours detection heads over a 3-class semantic mask: the key lesson this case study documents.</p>
+        <span class="tick">the generalization gap</span>
+        <p style="margin-top:8px">Local <span class="mono">blood_vessel</span> Mask mAP@50 was <strong>0.690</strong>, but the hidden-test board was <strong>~0.27</strong>. The cause is in the data code: the train/val split is an <strong>unshuffled index slice that ignores WSI boundaries</strong>, so tiles from one slide leak across the split. A <strong>group-aware per-WSI split</strong> is the first fix any next iteration should make.</p>
       </div>
     </div>
   </div>
