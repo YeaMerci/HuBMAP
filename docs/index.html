@@ -4,17 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HuBMAP · Hacking the Human Vasculature — Microvascular Instance Segmentation</title>
-<meta name="description" content="A config-driven PyTorch Lightning framework for microvascular instance segmentation in PAS-stained human kidney histology. Kaggle HuBMAP 2023 — an ML system-design case study." />
+<meta name="description" content="An applied research project on microvascular instance segmentation in PAS-stained human kidney histology (Kaggle HuBMAP 2023): clinical motivation, two model families (Mask R-CNN, YOLOv8x-seg), a reproducible Lightning pipeline, and honest results (best public AP@0.6 = 0.3317)." />
 
 <!-- Social / Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:title" content="HuBMAP — Hacking the Human Vasculature" />
-<meta property="og:description" content="Config-driven PyTorch Lightning framework for microvascular instance segmentation in human kidney histology. An ML system-design case study." />
+<meta property="og:description" content="An applied research project on microvascular instance segmentation in human kidney histology. Motivation, two model families, reproducible pipeline, and honest results (best public AP@0.6 = 0.3317)." />
 <meta property="og:url" content="https://yeamerci.github.io/HuBMAP/" />
 <meta property="og:image" content="https://yeamerci.github.io/HuBMAP/og-cover.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="HuBMAP — Hacking the Human Vasculature" />
-<meta name="twitter:description" content="Config-driven PyTorch Lightning framework for microvascular instance segmentation in human kidney histology." />
+<meta name="twitter:description" content="An applied research project on microvascular instance segmentation in human kidney histology. Best public AP@0.6 = 0.3317." />
 <meta name="twitter:image" content="https://yeamerci.github.io/HuBMAP/og-cover.png" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -212,8 +212,8 @@
   <div class="wrap">
     <span class="kicker reveal in">🩸 Kaggle · HuBMAP 2023 · Instance Segmentation</span>
     <h1 class="reveal in d1">Hacking the<br/>Human <span class="blood">Vasculature</span></h1>
-    <p class="subtitle reveal in d2">A config-driven PyTorch Lightning framework for microvascular instance segmentation in PAS-stained human kidney histology.</p>
-    <p class="lede reveal in d3">An engineering-first case study in <strong>ML system design</strong> — polygon-to-mask modelling, reproducible augmentation, class-balanced training, and competition-format submission encoding. Documented honestly: no fabricated scores.</p>
+    <p class="subtitle reveal in d2">An applied research project on microvascular instance segmentation in PAS-stained human kidney histology.</p>
+    <p class="lede reveal in d3">One question, followed all the way through: which method actually finds these vessels, and does it hold up on slides it has never seen? Clinical motivation, two model families, a reproducible pipeline, and honest conclusions. Best public score <strong>AP@0.6 = 0.3317</strong>, with every number traced to a primary source.</p>
     <div class="cta reveal in d4">
       <a class="btn primary" href="https://github.com/YeaMerci/HuBMAP" target="_blank" rel="noopener">◈ View the Repository</a>
       <a class="btn ghost" href="#pipeline">↳ Explore the Pipeline</a>
@@ -242,8 +242,8 @@
         <p>HuBMAP 2023 asked participants to automatically segment microvascular structures (blood vessels) in Periodic acid-Schiff stained whole-slide images of healthy human kidney — a step toward a <strong>Human Reference Atlas</strong>.</p>
       </div>
       <div class="reveal d2">
-        <p>This repository is a <strong>from-scratch, configuration-driven training framework</strong> for that task. It rasterizes polygonal annotations into semantic or instance masks, applies a reproducible Albumentations pipeline, trains a <span class="mono" style="color:var(--teal)">UNet++ / MobileNetV2</span> network under PyTorch Lightning with class-balanced cross-entropy, and encodes predictions in the competition's COCO-RLE → zlib → base64 format.</p>
-        <p>The goal is a maintainable, template-generated ML system — not a one-off notebook.</p>
+        <p>To study that task honestly, the project is built on a <strong>configuration-driven training apparatus</strong>. It rasterizes polygonal annotations into semantic or instance masks, applies a reproducible Albumentations pipeline, trains a <span class="mono" style="color:var(--teal)">UNet++ / MobileNetV2</span> network under PyTorch Lightning with class-balanced cross-entropy, and encodes predictions in the competition's COCO-RLE, zlib, base64 format.</p>
+        <p>The aim was a maintainable, template-generated system that keeps runs comparable and reproducible, so the experiments in the notebooks can actually be trusted.</p>
       </div>
     </div>
   </div>
@@ -384,7 +384,7 @@ flowchart LR
     <h2>Two model families, graded on the board</h2></div>
     <div class="note reveal d1">
       <span class="tick">full provenance</span>
-      <p style="margin-top:8px">Every number here traces to a primary artifact — the official Kaggle <span class="mono">submission export</span>, the saved Ultralytics <span class="mono">results.csv</span> logs, or the notebooks' own executed outputs. The leaderboard metric is <strong>AP at a single IoU = 0.6</strong>, single class. Local YOLO numbers are <strong>Mask mAP@50 / 50-95</strong> on an 80/20 split — a more forgiving measurement, which is the whole point of the generalization analysis below.</p>
+      <p style="margin-top:8px">Every number here traces to a primary artifact — the official Kaggle <span class="mono">submission export</span>, the saved Ultralytics <span class="mono">results.csv</span> logs, or the notebooks' own executed outputs. The leaderboard metric is <strong>AP at a single IoU = 0.6</strong>, single class. Local YOLO numbers are <strong>Mask mAP@50 / 50-95</strong> on an 80/20 split, a more forgiving measurement, which is the whole point of the generalization analysis below.</p>
     </div>
 
     <div class="grid3" style="margin-top:26px">
@@ -412,7 +412,7 @@ flowchart LR
     <div class="grid2" style="margin-top:26px">
       <div class="card panel reveal d1"><span class="corner tl"></span><span class="corner br"></span>
         <span class="tick">what worked</span>
-        <p style="margin-top:8px"><strong>YOLOv8x-seg + SGD + close_mosaic</strong> was the best, most stable line (0.60 Mask mAP@50 locally); <strong>SGD beat Adam</strong> 0.60 vs 0.45. COCO transfer learning converged Mask R-CNN in 10 epochs (val loss 1.19 → 0.95). The <strong>offline submission plumbing</strong> — building pycocotools/ultralytics from attached datasets, COCO-RLE → zlib → base64 — was verified end-to-end.</p>
+        <p style="margin-top:8px"><strong>YOLOv8x-seg + SGD + close_mosaic</strong> was the best, most stable line (0.60 Mask mAP@50 locally); <strong>SGD beat Adam</strong> 0.60 vs 0.45. COCO transfer learning converged Mask R-CNN in 10 epochs (val loss 1.19 → 0.95). The <strong>offline submission plumbing</strong> (building pycocotools/ultralytics from attached datasets, COCO-RLE to zlib to base64) was verified end-to-end.</p>
       </div>
       <div class="card panel reveal d2"><span class="corner tl"></span><span class="corner br"></span>
         <span class="tick">the generalization gap</span>
@@ -425,7 +425,7 @@ flowchart LR
 <footer>
   <div class="wrap">
     <a class="btn primary" href="https://github.com/YeaMerci/HuBMAP" target="_blank" rel="noopener" style="margin-bottom:26px">◈ Open the Repository on GitHub</a>
-    <p class="mono">HuBMAP · Hacking the Human Vasculature — ML system-design case study</p>
+    <p class="mono">HuBMAP · Hacking the Human Vasculature · an applied research project</p>
     <p class="mono" style="margin-top:8px;color:var(--faint)">No patient data or competition files are redistributed · Figures are the project's own notebook renders</p>
   </div>
 </footer>

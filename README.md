@@ -2,7 +2,7 @@
 
 # 🩸 HuBMAP — Hacking the Human Vasculature
 
-### A config‑driven PyTorch Lightning framework for microvascular instance segmentation in human kidney histology
+### An applied research project on microvascular instance segmentation in human kidney histology
 
 <em>Segmenting blood‑vessel structures in PAS‑stained renal tissue to help build the Vasculature Common Coordinate Framework (VCCF)</em>
 
@@ -29,11 +29,11 @@
 </div>
 
 > [!NOTE]
-> **What this repository is.** An engineering‑first, configuration‑driven training framework built from scratch for the Kaggle *HuBMAP — Hacking the Human Vasculature* (2023) competition. The emphasis of this case study is **ML system design**: a clean, modular, YAML‑configurable PyTorch Lightning pipeline covering data modelling, polygon→mask rasterization, augmentation, training, experiment tracking, and competition‑format submission encoding.
+> **What this repository is.** An applied research project asking a concrete question: *what actually finds microvascular structures (blood vessels) in stained kidney histology, and does the answer hold up on slides the model has never seen?* It carries the work from a clinical motivation through method design, experiments across two model families, and honest conclusions about what generalizes. The research rests on real engineering: a modular, YAML‑configurable PyTorch Lightning pipeline for data modelling, polygon→mask rasterization, augmentation, training, experiment tracking, and competition‑format submission encoding. The engineering exists to keep the experiments reproducible and comparable, not as an end in itself.
 >
-> **Two tracks.** This repo holds **(1)** an engineering‑first, config‑driven Lightning framework (UNet++ / MobileNetV2) and **(2)** the [competition notebooks](notebooks/) where the actual modelling and scoring happened — two model families (**Mask R‑CNN** and **YOLOv8x‑seg**) taken all the way to graded submissions.
+> **How the work is organized.** Two complementary parts. The [competition notebooks](notebooks/) are where the investigation actually happens: exploratory analysis, two model families (**Mask R‑CNN** and **YOLOv8x‑seg**), hyperparameter sweeps, and graded submissions. The config‑driven Lightning framework (UNet++ / MobileNetV2) is the apparatus built to make that experimentation repeatable. Together they trace one line of inquiry end to end.
 >
-> **On results.** The best **selected public score was AP @ IoU 0.6 = 0.3317**. Every number in this README traces to a primary artifact: the official Kaggle submission export, the saved training runs (`results.csv`), the notebooks' own executed outputs, or the [official competition pages](https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature). Nothing is invented to look impressive; where a notebook's own internal metric is unreliable, that is stated explicitly. See **[Results & Experiments](#-results--experiments)**.
+> **On results.** The best selected public score was **AP @ IoU 0.6 = 0.3317**. Every number in this README traces back to a primary artifact: the official Kaggle submission export, the saved training runs (`results.csv`), the notebooks' own executed outputs, or the [official competition pages](https://www.kaggle.com/competitions/hubmap-hacking-the-human-vasculature). Nothing is invented to look impressive, and where a notebook's own internal metric is unreliable, that is called out plainly. See **[Results & Experiments](#-results--experiments)**.
 
 ---
 
@@ -58,11 +58,11 @@
 
 ## 🧭 Abstract
 
-The proper functioning of human organs depends on the spatial organization of ~37 trillion cells. Mapping them requires a navigation system, and the **Vasculature Common Coordinate Framework (VCCF)** uses the body's blood vasculature — down to individual capillaries — as that coordinate system. Gaps in our knowledge of **microvasculature** therefore translate directly into gaps in the VCCF. The HuBMAP 2023 competition asked participants to **automatically segment microvascular structures (blood vessels)** in Periodic acid‑Schiff (PAS) stained whole‑slide images of healthy human kidney.
+The proper functioning of human organs depends on the spatial organization of ~37 trillion cells. Mapping them requires a navigation system, and the **Vasculature Common Coordinate Framework (VCCF)** uses the body's blood vasculature, right down to individual capillaries, as that coordinate system. Gaps in our knowledge of **microvasculature** therefore translate directly into gaps in the VCCF. The HuBMAP 2023 competition asked participants to **automatically segment microvascular structures (blood vessels)** in Periodic acid‑Schiff (PAS) stained whole‑slide images of healthy human kidney.
 
-This repository implements a **from‑scratch, config‑driven training framework** for that task. It rasterizes polygonal annotations into semantic (or instance) masks, applies a reproducible Albumentations pipeline, trains a `segmentation-models-pytorch` **UNet++ / MobileNetV2** network under **PyTorch Lightning** with class‑balanced cross‑entropy, tracks IoU / F1 / accuracy via `torchmetrics`, and encodes predictions in the competition's **COCO‑RLE → zlib → base64** submission format. The design goal is a maintainable, template‑generated, environment‑variable‑wired ML system — not a one‑off notebook.
+The question this project studies is a practical one: which method reliably segments those vessels, and how far does its measured performance survive the jump from training tiles to unseen slides. To keep that investigation honest, the work is built on a **config‑driven training apparatus**. It rasterizes polygonal annotations into semantic (or instance) masks, applies a reproducible Albumentations pipeline, trains a `segmentation-models-pytorch` **UNet++ / MobileNetV2** network under **PyTorch Lightning** with class‑balanced cross‑entropy, tracks IoU, F1 and accuracy via `torchmetrics`, and encodes predictions in the competition's **COCO‑RLE, zlib, base64** submission format. The aim was a maintainable, template‑generated system that makes runs comparable and reproducible rather than a single throwaway notebook.
 
-Alongside the framework, the competition itself was worked in a set of **[curated notebooks](notebooks/)** spanning two model families — **Mask R‑CNN** (torchvision ResNet50‑FPN) and **YOLOv8x‑seg** — from EDA and data engineering through training sweeps to offline submission. Best **public score: AP @ IoU 0.6 = 0.3317**; locally, YOLOv8x‑seg reached **Mask mAP@50 = 0.690** on the scored `blood_vessel` class. The [Results & Experiments](#-results--experiments) section reports these with full provenance — including an honest analysis of the local‑vs‑leaderboard generalization gap.
+The empirical core lives in a set of **[curated notebooks](notebooks/)** that carry the study from EDA and data engineering through training sweeps to offline submission, across two model families: **Mask R‑CNN** (torchvision ResNet50‑FPN) and **YOLOv8x‑seg**. The best public score was **AP @ IoU 0.6 = 0.3317**, and locally YOLOv8x‑seg reached **Mask mAP@50 = 0.690** on the scored `blood_vessel` class. The [Results & Experiments](#-results--experiments) section reports these with full provenance, including a candid analysis of why the local numbers ran well ahead of the leaderboard.
 
 ---
 
@@ -301,7 +301,7 @@ A `DatasetValidator` mix‑in type‑checks every argument (paths, split ratio, 
 `EncodeBinaryMask` converts each predicted binary mask to Fortran‑order `uint8`, encodes it with the **COCO mask RLE API**, **zlib**‑compresses (best compression), and **base64**‑encodes it — emitting the required `0 {confidence} {EncodedMask}` prediction strings into `submission.csv`.
 
 > [!WARNING]
-> **Honest scope.** The provided `Submission` uses a `SampleModel` that emits random masks — a working I/O harness, not a trained predictor. The winning solutions for this competition used **detection / instance‑segmentation** frameworks (RTMDet, YOLOv8‑seg, Mask R‑CNN / HTC / DetectoRS via MMDetection & Detectron2) with heavy ensembling. This repository is a **semantic‑segmentation baseline framework**, and is documented as such.
+> **Honest scope.** The `Submission` class in the framework ships with a `SampleModel` that emits random masks, a working I/O harness rather than a trained predictor (the trained models live in the notebooks). The winning solutions for this competition leaned on **detection and instance‑segmentation** frameworks (RTMDet, YOLOv8‑seg, Mask R‑CNN / HTC / DetectoRS via MMDetection and Detectron2) with heavy ensembling. This project studies that space from a semantic‑segmentation starting point and documents where it holds and where it falls short.
 
 ---
 
@@ -333,11 +333,12 @@ $$
 
 ## 🧪 Notebooks & Experiments
 
-The competition was worked in two parallel tracks: the **Lightning framework** in this repo
-(UNet++ / MobileNetV2, semantic), and a set of **[Kaggle notebooks](notebooks/)** that iterated
-faster with off‑the‑shelf detection/instance models. Seven curated notebooks cover the arc — EDA,
-data engineering, two model families, and offline submission. Full per‑notebook write‑ups with
-exact numbers live in **[`notebooks/README.md`](notebooks/README.md)**.
+The investigation ran along two complementary lines. The **Lightning framework** in this repo
+(UNet++ / MobileNetV2, semantic) kept the experiments reproducible, while a set of
+**[Kaggle notebooks](notebooks/)** iterated faster with off‑the‑shelf detection and instance
+models. Seven curated notebooks cover the whole arc: EDA, data engineering, two model families,
+and offline submission. Full per‑notebook write‑ups with exact numbers live in
+**[`notebooks/README.md`](notebooks/README.md)**.
 
 | # | Notebook | What it contributes |
 |---|----------|---------------------|
