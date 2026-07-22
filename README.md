@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🩸 HuBMAP — Hacking the Human Vasculature
+# 🩸 HuBMAP: Hacking the Human Vasculature
 
 ### An applied research project on microvascular instance segmentation in human kidney histology
 
